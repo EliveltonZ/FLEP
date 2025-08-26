@@ -1,0 +1,296 @@
+import {
+  getText,
+  setText,
+  formatCEP,
+  setInnerHtml,
+  insertButtonCellTable,
+  getInnerHtml,
+  addEventToElement,
+  getCookie,
+  setChecked,
+  getChecked,
+} from "./utils.js";
+import Swal from "./sweetalert2.esm.all.min.js";
+
+import { clearTableBody, createRow } from "./dom.js";
+
+window.findCep = async function () {
+  const cep = getText("txt_cep");
+  const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+  const endereco = await response.json();
+  setText("txt_endereco", endereco.logradouro);
+  setText("txt_bairro", endereco.bairro);
+  setText("txt_cidade", endereco.localidade);
+  setText("txt_estado", endereco.uf);
+};
+
+function fillStates() {
+  const estados = [
+    "AC", // Acre
+    "AL", // Alagoas
+    "AP", // Amapá
+    "AM", // Amazonas
+    "BA", // Bahia
+    "CE", // Ceará
+    "DF", // Distrito Federal
+    "ES", // Espírito Santo
+    "GO", // Goiás
+    "MA", // Maranhão
+    "MT", // Mato Grosso
+    "MS", // Mato Grosso do Sul
+    "MG", // Minas Gerais
+    "PA", // Pará
+    "PB", // Paraíba
+    "PR", // Paraná
+    "PE", // Pernambuco
+    "PI", // Piauí
+    "RJ", // Rio de Janeiro
+    "RN", // Rio Grande do Norte
+    "RS", // Rio Grande do Sul
+    "RO", // Rondônia
+    "RR", // Roraima
+    "SC", // Santa Catarina
+    "SP", // São Paulo
+    "SE", // Sergipe
+    "TO", // Tocantins
+  ];
+  const select = document.getElementById("txt_estado");
+  select.innerHTML = `<option value="-">-</option>`;
+  estados.forEach((item) => {
+    const option = document.createElement("option");
+    option.text = item;
+    option.value = item;
+    select.appendChild(option);
+  });
+}
+
+function checkRadios() {
+  const radios = document.querySelectorAll('input[name="tipo"]');
+
+  radios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      if (radio.checked) {
+        if (radio.id == "radio-pj") {
+          setInnerHtml("lb_nome", "Razão Social:");
+          setInnerHtml("lb_documento", "CNPJ:");
+        } else {
+          setInnerHtml("lb_nome", "Nome:");
+          setInnerHtml("lb_documento", "CPF:");
+        }
+      }
+    });
+  });
+}
+
+function setRadio(value) {
+  if (value == "PF") {
+    setChecked("radio-pf", true);
+  } else {
+    setChecked("radio-pj", true);
+  }
+}
+
+function getRadio() {
+  if (getChecked("radio-pf") == true) {
+    return "PF";
+  } else {
+    return "PJ";
+  }
+}
+
+async function getDados() {
+  const response = await fetch(`/getMeusDados?p_id=${await getCookie("id")}`);
+
+  const data = await response.json();
+  setRadio(data[0].p_tipocliente);
+  setText("txt_razaosocial", data[0].p_nomerazao);
+  setText("txt_cnpj_cpf", data[0].p_cnpjcpf);
+  setText("txt_cep", data[0].p_cep);
+  setText("txt_endereco", data[0].p_endereco);
+  setText("txt_bairro", data[0].p_bairro);
+  setText("txt_cidade", data[0].p_cidade);
+  setText("txt_estado", data[0].p_estado);
+  setText("txt_numero", data[0].p_numero);
+}
+
+async function setMeusDados() {
+  const result = await Swal.fire({
+    icon: "question",
+    title: "Salvar",
+    text: "Deseja salvar Alterações ?",
+    showDenyButton: true,
+    denyButtonText: "Cancelar",
+    confirmButtonText: "Confirmar",
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const data = {
+        p_id: await getCookie("id"),
+        p_tipocliente: getRadio(),
+        p_nomerazao: getText("txt_razaosocial"),
+        p_cnpjcpf: getText("txt_cnpj_cpf"),
+        p_cep: getText("txt_cep"),
+        p_endereco: getText("txt_endereco"),
+        p_bairro: getText("txt_bairro"),
+        p_cidade: getText("txt_cidade"),
+        p_estado: getText("txt_estado"),
+        p_numero: getText("txt_numero"),
+      };
+
+      const response = await fetch(`/setMeusDados`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      Swal.fire({
+        icon: "success",
+        title: "SUCESSO",
+        text: "Alterações salvas com Sucesso !!!",
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "ERRO",
+        text: `Ocorreu um erro ao processar requisição ${err}`,
+      });
+    }
+  }
+}
+
+async function fillBanks1(params) {
+  const response = await fetch(
+    `/getBancos?p_id_marcenaria=${await getCookie("id")}`
+  );
+
+  const data = await response.json();
+  const tbody = document.getElementById("tbody-bank");
+  tbody.innerHTML = "";
+
+  data.forEach((item) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item.p_banco}</td>
+      <td>${item.p_agencia}</td>
+      <td>${item.p_numero}</td>
+      <td>${item.p_tipo_conta}</td>
+      <td>${item.p_pix}</td>
+      ${insertButtonCellTable("delBanco")}
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function fillBanks(params) {
+  const response = await fetch(
+    `/getBancos?p_id_marcenaria=${await getCookie("id")}`
+  );
+
+  const data = await response.json();
+  const tbody = document.getElementById("tbody-bank");
+  clearTableBody("#tbody-bank");
+  data.forEach((item) => {
+    const line = `
+      <td>${item.p_banco}</td>
+      <td>${item.p_agencia}</td>
+      <td>${item.p_numero}</td>
+      <td>${item.p_tipo_conta}</td>
+      <td>${item.p_pix}</td>
+      ${insertButtonCellTable("delBanco")}
+    `;
+    const tr = createRow(line);
+    tbody.appendChild(tr);
+  });
+}
+
+async function setBanco() {
+  const result = await Swal.fire({
+    icon: "question",
+    title: "Inserir",
+    text: "Deseja salvar banco ?",
+    showDenyButton: true,
+    confirmButtonText: "Confirmar",
+    denyButtonText: "Canncelar",
+  });
+
+  if (result.isConfirmed) {
+    const data = {
+      p_id_marcenaria: await getCookie("id"),
+      p_banco: getText("txt_banco"),
+      p_tipo_conta: getText("txt_tipoconta"),
+      p_numero: getText("txt_agencia"),
+      p_agencia: getText("txt_numconta"),
+      p_pix: getText("txt_pix"),
+    };
+
+    const response = await fetch(`/setBancos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      Swal.fire({
+        icon: "error",
+        title: "ERRO",
+        text: "Não foi possivel salvar banco",
+      });
+    }
+    Swal.fire({
+      icon: "success",
+      title: "SUCESSO",
+      text: "Banco inserido com sucesso !!!",
+    });
+  }
+}
+
+window.delBanco = async function (button) {
+  const result = await Swal.fire({
+    icon: "question",
+    text: "Deseja excluir banco ?",
+    confirmButtonText: "Sim",
+    denyButtonText: "Não",
+    showDenyButton: true,
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const data = {
+        p_id_marcenaria: await getCookie("id"),
+        p_banco: getValue(button),
+      };
+
+      const response = await fetch(`./setDelBanco`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      Swal.fire({
+        icon: "success",
+        title: "Sucesso",
+        text: "Banco removido com Sucesso !!!",
+      });
+    } catch {
+      Swal.fire({
+        icon: "error",
+        title: "ERRo",
+        text: "Não foi possivel salvar Alterações",
+      });
+    }
+  }
+};
+
+function getValue(button) {
+  const linha = button.closest("tr");
+  const valor = linha.cells[0].innerHTML;
+  return valor;
+}
+document.addEventListener("DOMContentLoaded", (event) => {
+  fillStates();
+  formatCEP("txt_cep");
+  checkRadios();
+  getDados();
+  fillBanks();
+  addEventToElement("#bt_update", "click", setMeusDados);
+  addEventToElement("#bt_add_bank", "click", setBanco);
+});

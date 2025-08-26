@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html data-bs-theme="auto" lang="pt-br">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Now UI Dashboard by Creative Tim</title>
+    <script>!function(){const e=()=>localStorage.getItem("theme"),t=document.documentElement.getAttribute("data-bss-forced-theme"),a=()=>{if(t)return t;const a=e();if(a)return a;const r=document.documentElement.getAttribute("data-bs-theme");return r||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")},r=e=>{"auto"===e&&window.matchMedia("(prefers-color-scheme: dark)").matches?document.documentElement.setAttribute("data-bs-theme","dark"):document.documentElement.setAttribute("data-bs-theme",e)};r(a());const c=(e,t=!1)=>{const a=[].slice.call(document.querySelectorAll(".theme-switcher"));if(a.length){document.querySelectorAll("[data-bs-theme-value]").forEach((e=>{e.classList.remove("active"),e.setAttribute("aria-pressed","false")}));for(const t of a){const a=t.querySelector('[data-bs-theme-value="'+e+'"]');a&&(a.classList.add("active"),a.setAttribute("aria-pressed","true"))}}};window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",(()=>{const t=e();"light"!==t&&"dark"!==t&&r(a())})),window.addEventListener("DOMContentLoaded",(()=>{c(a()),document.querySelectorAll("[data-bs-theme-value]").forEach((e=>{e.addEventListener("click",(t=>{t.preventDefault();const a=e.getAttribute("data-bs-theme-value");(e=>{localStorage.setItem("theme",e)})(a),r(a),c(a)}))}))}))}();</script>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css?h=a549af2a81cd9900ee897d8bc9c4b5e9">
+    <link rel="stylesheet" href="assets/fonts/fontawesome-all.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/fonts/font-awesome.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/fonts/ionicons.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/fonts/fontawesome5-overrides.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/css/styles.min.css?h=31415907c7bc07d1d58335011fb994ef">
+    <link rel="stylesheet" href="assets/css/animate.min.min.css?h=5512c3e92e3931978c9ddcc7dbeed22b">
+    <link rel="stylesheet" href="assets/css/css/style.min.css?h=c66e133ea781963e131608a70e0e2018">
+<script type="module" src="assets/js/comissoes.js"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="sidebar" data-color="green">
+            <div class="logo"><a class="simple-text logo-normal">FLEP</a></div>
+            <div class="sidebar-wrapper" id="sidebar-wrapper">
+                <ul class="nav">
+                    <li href=""><a data-bss-hover-animate="pulse" href="orcamentos.html">Orçamentos<i class="fa fa-dollar"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="cadastro_materiais1.html">Materiais<i class="fa fa-plus-circle"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="clientes.html">Clientes<i class="icon ion-person-add"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="base_calculos.html">BASE DE CALCULOS<i class="far fa-money-bill-alt"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="tipo_ambiente.html">Tipos de ambientes<i class="far fa-building"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="parcelamento.html">TAXAS DE PARCELAMENTO<i class="far fa-credit-card"></i></a></li>
+                    <li class="active"><a data-bss-hover-animate="pulse" href="comissoes.html">COMISSÕES<i class="icon ion-social-usd-outline"></i></a></li>
+                    <li class="active-pro"><a data-bss-hover-animate="pulse" href="meus_dados.html">MEU PERFIL<i class="far fa-user"></i></a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="flex-column main-panel" id="main-panel" style="display: flex; flex-direction: column; height: 100vh;">
+            <nav class="navbar navbar-expand-lg bg-primary navbar-transparent navbar-absolute">
+                <div class="container-fluid">
+                    <div class="navbar-wrapper" style="height: 100%;"><label class="form-label" id="handle-sidebar" for="toggle"><input class="d-none" type="checkbox" id="toggle"></label><a class="navbar-brand">COMISSÕES</a></div>
+                    <div class="collapse navbar-collapse justify-content-end" id="navigation">
+                        <form>
+                            <div class="input-group no-border"></div>
+                        </form>
+                    </div>
+                </div>
+            </nav>
+            <div id="conteiner-head" class="panel-header panel-header-sm"></div>
+            <div class="flex-column content" id="conteiner-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body d-flex flex-column all-icons" style="padding-bottom: 15px;">
+                                <div class="d-flex justify-content-sm-center">
+                                    <div style="border-radius: 15px;border: 1px solid rgba(120,120,121,0.61);padding: 30px;">
+                                        <div class="table-responsive" style="max-height: calc(100vh - 293px);min-width: 50vh;">
+                                            <table class="table" id="table">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-center" style="font-weight: bold;font-size: 12px;">ID</th>
+                                                        <th style="font-weight: bold;font-size: 12px;">Descrição</th>
+                                                        <th class="text-center" style="font-weight: bold;font-size: 12px;">Valor</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody style="height: 100%;"></tbody>
+                                            </table>
+                                        </div>
+                                        <div class="d-flex d-xxl-flex justify-content-center"><button class="btn bt-color" id="bt_add_comissao" type="button" data-bs-target="#modal" data-bs-toggle="modal">Adicionar</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <footer class="footer">
+                <div class="container-fluid">
+                    <nav></nav>
+                    <div class="copyright" id="copyright"><span> © </span><span>, Designed by </span><a href="https://www.invisionapp.com" target="_blank">Invision</a><span>. Coded by </span><a href="https://www.creative-tim.com" target="_blank">Creative Tim</a><span>. </span></div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    <div class="modal fade" role="dialog" tabindex="-1" id="modal">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" style="width: 100%;text-align: center;">COMISSÕES</h4><button class="btn-close" type="button" aria-label="Close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display: flex; gap:10px">
+                        <div style="min-width: 69%;"><label class="form-label" style="display: block;width: 100%;">Descrição</label><input type="text" id="txt_descricao" style="display: block;width: 100%;"></div>
+                        <div><label class="form-label" style="display: block;width: 100%;">Porcentagem</label><input type="text" id="txt_porcentagem" style="display: block;width: 100%;text-align: center;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer d-xl-flex d-xxl-flex justify-content-xl-center justify-content-xxl-center"><button class="btn bt-color" id="bt_inserir" type="button">Inserir</button></div>
+            </div>
+        </div>
+    </div>
+    <script src="assets/bootstrap/js/bootstrap.min.js?h=374d178d651fa0eaf680a1fa7b40c788"></script>
+    <script src="assets/js/script.min.js?h=35a745003519d0480832903c736bc4ec"></script>
+</body>
+
+</html>

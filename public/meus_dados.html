@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html data-bs-theme="auto" lang="pt-br" data-swal2-theme="auto">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Meus Dados</title>
+    <script>!function(){const e=()=>localStorage.getItem("theme"),t=document.documentElement.getAttribute("data-bss-forced-theme"),a=()=>{if(t)return t;const a=e();if(a)return a;const r=document.documentElement.getAttribute("data-bs-theme");return r||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")},r=e=>{"auto"===e&&window.matchMedia("(prefers-color-scheme: dark)").matches?document.documentElement.setAttribute("data-bs-theme","dark"):document.documentElement.setAttribute("data-bs-theme",e)};r(a());const c=(e,t=!1)=>{const a=[].slice.call(document.querySelectorAll(".theme-switcher"));if(a.length){document.querySelectorAll("[data-bs-theme-value]").forEach((e=>{e.classList.remove("active"),e.setAttribute("aria-pressed","false")}));for(const t of a){const a=t.querySelector('[data-bs-theme-value="'+e+'"]');a&&(a.classList.add("active"),a.setAttribute("aria-pressed","true"))}}};window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",(()=>{const t=e();"light"!==t&&"dark"!==t&&r(a())})),window.addEventListener("DOMContentLoaded",(()=>{c(a()),document.querySelectorAll("[data-bs-theme-value]").forEach((e=>{e.addEventListener("click",(t=>{t.preventDefault();const a=e.getAttribute("data-bs-theme-value");(e=>{localStorage.setItem("theme",e)})(a),r(a),c(a)}))}))}))}();</script>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css?h=a549af2a81cd9900ee897d8bc9c4b5e9">
+    <link rel="stylesheet" href="assets/fonts/fontawesome-all.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/fonts/font-awesome.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/fonts/ionicons.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/fonts/fontawesome5-overrides.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/css/styles.min.css?h=31415907c7bc07d1d58335011fb994ef">
+    <link rel="stylesheet" href="assets/css/animate.min.min.css?h=5512c3e92e3931978c9ddcc7dbeed22b">
+    <link rel="stylesheet" href="assets/css/css/style.min.css?h=c66e133ea781963e131608a70e0e2018">
+<script type="module" src="assets/js/meusDados.js"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="sidebar" data-color="green">
+            <div class="logo"><a class="simple-text logo-normal">FLEP</a></div>
+            <div id="sidebar-wrapper" class="sidebar-wrapper">
+                <ul class="nav">
+                    <li href=""><a data-bss-hover-animate="pulse" href="orcamentos.html">Orçamentos<i class="fa fa-dollar"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="cadastro_materiais.html">Materiais<i class="fa fa-plus-circle"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="clientes.html">Clientes<i class="icon ion-person-add"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="base_calculos.html">BASE DE CALCULOS<i class="far fa-money-bill-alt"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="tipo_ambiente.html">Tipos de ambientes<i class="far fa-building"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="parcelamento.html">TAXAS DE PARCELAMENTO<i class="far fa-credit-card"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="comissoes.html">COMISSÕES<i class="icon ion-social-usd-outline"></i></a></li>
+                    <li class="active-pro active"><a data-bss-hover-animate="pulse" href="meus_dados.html">MEU PERFIL<i class="far fa-user"></i></a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="flex-column main-panel" id="main-panel" style="display: flex;flex-direction: column;height: 100vh;">
+            <nav class="navbar navbar-expand-lg bg-primary navbar-transparent navbar-absolute">
+                <div class="container-fluid">
+                    <div class="navbar-wrapper" style="height: 100%;"><label class="form-label" id="handle-sidebar" for="toggle"><input class="d-none" type="checkbox" id="toggle"></label><a class="navbar-brand">MEUS DADOS</a></div><button class="navbar-toggler" data-bs-toggle="collapse" type="button" data-toggle="collapse" data-target="#navigation" aria-controls="navigation-index" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-bar navbar-kebab"></span><span class="navbar-toggler-bar navbar-kebab"></span><span class="navbar-toggler-bar navbar-kebab"></span></button>
+                </div>
+            </nav>
+            <div id="conteiner-head" class="panel-header panel-header-sm"></div>
+            <div class="flex-column content" id="conteiner-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body d-flex flex-column justify-content-center all-icons" style="padding-bottom: 15px;">
+                                <div class="align-content-center" style="width: 100%;border: 1px solid rgba(120,120,121,0.61);border-radius: 15px;padding: 15px;">
+                                    <form style="width: 100%;">
+                                        <div class="d-flex justify-content-center align-items-center gap-4">
+                                            <div class="text-nowrap gap-4">
+                                                <div class="form-check"><input class="form-check-input" type="radio" id="radio-pf" name="tipo" checked="" value="PF"><label for="radio-pf">Pessoa Física</label></div>
+                                                <div class="form-check"><input class="form-check-input" type="radio" id="radio-pj" name="tipo" value="PJ"><label for="radio-pj">Pessoa Jurídica</label></div>
+                                            </div>
+                                            <div class="text-nowrap d-flex" style="width: 100%;gap: 2%;"><label class="form-label" id="lb_nome" style="margin-top: 3px;">Nome:</label><input class="form-control" type="text" id="txt_razaosocial"></div>
+                                            <div class="d-flex align-items-end gap-2" style="width: 50%;"><label class="form-label" id="lb_documento">CPF:</label><input class="form-control" type="text" id="txt_cnpj_cpf" style="text-align: center;"></div>
+                                        </div>
+                                        <div class="d-flex align-items-end gap-5" style="margin-top: 40px;">
+                                            <div style="width: 20%;"><label class="form-label">CEP:</label><input class="form-control" type="text" id="txt_cep" onblur="findCep()" style="text-align: center;" maxlength="9" minlength="9"></div>
+                                            <div style="width: 80%;"><label class="form-label">Endereço:</label><input class="form-control" type="text" id="txt_endereco"></div>
+                                        </div>
+                                        <div class="justify-content-between div-block" style="display: flex;gap: 2%;margin-top: 50px;height: 29px;">
+                                            <div class="d-flex align-items-center gap-3"><label class="form-label">Bairro:</label><input class="form-control" type="text" id="txt_bairro" style="text-align: center;"></div>
+                                            <div class="d-flex align-items-center gap-3"><label class="form-label">Cidade:</label><input class="form-control" type="text" id="txt_cidade" style="text-align: center;"></div>
+                                            <div class="d-flex align-items-center gap-3"><label class="form-label">Estado:</label><select class="form-select" id="txt_estado" style="width: 80px;text-align: center;"></select></div>
+                                            <div class="d-flex align-items-center gap-3"><label class="form-label">Numero:</label><input class="form-control" type="text" id="txt_numero" style="text-align: center;width: 80px;"></div><button class="btn bt-color" id="bt_bancos" type="button" data-bs-target="#modal" data-bs-toggle="modal" style="font-size: 12px;">Bancos</button>
+                                        </div>
+                                        <div class="justify-content-center" style="margin-top: 30px;gap: 30px;display: flex;"><button class="btn bt-color" id="bt_update" type="button">Salvar</button></div>
+                                    </form>
+                                    <div class="table-responsive" style="margin-top: 30px;font-size: 12px;max-height: 25vh;">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Banco</th>
+                                                    <th>Agencia</th>
+                                                    <th>Conta</th>
+                                                    <th>Tipo</th>
+                                                    <th>Pix</th>
+                                                    <th style="text-align: center;">Excluir</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tbody-bank"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <footer class="footer">
+                <div class="container-fluid">
+                    <nav></nav>
+                    <div class="copyright" id="copyright"><span> © </span><span>, Designed by </span><a href="https://www.invisionapp.com" target="_blank">Invision</a><span>. Coded by </span><a href="https://www.creative-tim.com" target="_blank">Creative Tim</a><span>. </span></div>
+                </div>
+            </footer>
+            <div class="modal fade" role="dialog" tabindex="-1" id="modal">
+                <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title">Adicionar Banco</h4><button class="btn-close" type="button" aria-label="Close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="text-nowrap justify-content-between div-block" style="display: flex; gap:30px;"><label class="form-label" style="display: block;">Banco:</label><input type="text" id="txt_banco" style="display: block;width: 100%;"><label class="form-label" style="display: block;">Tipo de Conta:</label><select id="txt_tipoconta" style="display: block;width: 100%;height: 28.66px;">
+                                    <option value="CORRENTE">Conta Corrente</option>
+                                    <option value="POUPANCA">Conta Pupança</option>
+                                </select></div>
+                            <div class="text-nowrap justify-content-between div-block" style="display: flex;gap: 30px;margin-top: 30px;;"><label class="form-label" style="display: block;">Agência:</label><input type="text" id="txt_agencia" style="display: block;width: 100%;"><label class="form-label" style="display: block;">Conta:</label><input type="text" id="txt_numconta" style="display: block;width: 100%;"></div>
+                            <div class="text-nowrap justify-content-between div-block" style="display: flex;gap: 30px;margin-top: 30px;margin-bottom: 15px;"><label class="form-label" style="display: block;">Pix:</label><input type="text" id="txt_pix" style="display: block;width: 100%;"></div>
+                        </div>
+                        <div class="modal-footer d-flex justify-content-center"><button class="btn bt-color" id="bt_add_bank" type="button">Adicionar</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="assets/bootstrap/js/bootstrap.min.js?h=374d178d651fa0eaf680a1fa7b40c788"></script>
+    <script src="assets/js/script.min.js?h=35a745003519d0480832903c736bc4ec"></script>
+</body>
+
+</html>
