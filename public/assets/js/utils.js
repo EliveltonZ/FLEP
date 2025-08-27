@@ -316,8 +316,10 @@ export async function setCookie(value) {
 }
 
 export function addEventToElement(element_id, _event, _function) {
-  const element = document.querySelector(element_id);
-  element.addEventListener(_event, _function);
+  const elements = document.querySelectorAll(element_id);
+  elements.forEach((element) => {
+    element.addEventListener(_event, _function);
+  });
 }
 
 export function formatPercent(value) {
