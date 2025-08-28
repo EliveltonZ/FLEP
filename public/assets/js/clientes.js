@@ -66,8 +66,61 @@ async function fillTableAdress(id_client) {
   });
 }
 
+async function findCep() {
+  const cep = getText("cepEndereco");
+  const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+  const endereco = await response.json();
+  setText("logradouroEndereco", endereco.logradouro);
+  setText("bairroEndereco", endereco.bairro);
+  setText("cidadeEndereco", endereco.localidade);
+  setText("ufEndereco", endereco.uf);
+}
+
+function fillStates() {
+  const estados = [
+    "AC", // Acre
+    "AL", // Alagoas
+    "AP", // Amapá
+    "AM", // Amazonas
+    "BA", // Bahia
+    "CE", // Ceará
+    "DF", // Distrito Federal
+    "ES", // Espírito Santo
+    "GO", // Goiás
+    "MA", // Maranhão
+    "MT", // Mato Grosso
+    "MS", // Mato Grosso do Sul
+    "MG", // Minas Gerais
+    "PA", // Pará
+    "PB", // Paraíba
+    "PR", // Paraná
+    "PE", // Pernambuco
+    "PI", // Piauí
+    "RJ", // Rio de Janeiro
+    "RN", // Rio Grande do Norte
+    "RS", // Rio Grande do Sul
+    "RO", // Rondônia
+    "RR", // Roraima
+    "SC", // Santa Catarina
+    "SP", // São Paulo
+    "SE", // Sergipe
+    "TO", // Tocantins
+  ];
+  const select = document.getElementById("ufEndereco");
+  select.innerHTML = `<option value="-">-</option>`;
+  estados.forEach((item) => {
+    const option = document.createElement("option");
+    option.text = item;
+    option.value = item;
+    select.appendChild(option);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", (event) => {
   fillTableClients();
   onmouseover("ctable");
   onmouseover("etable");
+  fillStates();
 });
+
+addEventToElement("#cepEndereco", "blur", findCep);
