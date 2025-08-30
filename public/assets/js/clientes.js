@@ -1,3 +1,4 @@
+// clients-addresses.js
 import {
   getText,
   setText,
@@ -5,122 +6,401 @@ import {
   setInnerHtml,
   insertButtonCellTable,
   getInnerHtml,
-  addEventToElement,
+  EventUtils,
   getCookie,
   setChecked,
   getChecked,
   onmouseover,
+  TableUtils,
+  addEventToElement,
+  API,
+  validarCpfCnpj,
 } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 
-async function fillTableClients() {
-  const id = await getCookie("id");
-  const response = await fetch(`/getClients?p_id_marcenaria=${id}`);
-  const data = await response.json();
-  const tableBody = document.querySelector("#ctable tbody");
-  tableBody.innerHTML = "";
-  const style = 'style="text-align: center"';
-  data.forEach((element) => {
+/* ================================
+   Constantes & helpers
+================================ */
+
+const SELECTORS = {
+  clientsTBody: "#ctable tbody",
+  addressesTBody: "#etable tbody",
+  addressesFormTableBody: "#tabelaEnderecos tbody",
+  clientsTable: "#ctable",
+  addressesTable: "#etable",
+  cpfInput: "#cpf",
+  cepInput: "#cepEndereco",
+  addAddressBtn: "#adicionarEndereco",
+  ufSelect: "#ufEndereco",
+  delRowCep: ".delrowcep",
+};
+
+const UF_LIST = [
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
+];
+
+// Normaliza CEP (remove não dígitos) e, se tiver util formatCEP, aplica.
+function normalizeCep(raw) {
+  const digits = (raw || "").replace(/\D/g, "");
+  return digits.length === 8
+    ? formatCEP
+      ? formatCEP(digits)
+      : digits
+    : digits;
+}
+
+// cria elementos com texto de forma segura
+function el(tag, text) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+// pega cookie id da marcenaria
+async function getShopId() {
+  return getCookie("id");
+}
+
+// trata respostas fetch
+async function toJSONorThrow(res) {
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText || "Erro");
+    throw new Error(`${res.status} ${res.statusText} - ${msg}`);
+  }
+  return res.json();
+}
+
+/* ================================
+   Camada de API (responsabilidade única: buscar dados)
+================================ */
+
+async function fetchClients() {
+  const shopId = await getShopId();
+  const res = await fetch(`/getClients?p_id_marcenaria=${shopId}`);
+  return toJSONorThrow(res);
+}
+
+async function fetchAddresses(clientId) {
+  const shopId = await getShopId();
+  const res = await fetch(
+    `/getEnderecos?p_id_marcenaria=${shopId}&p_id_cliente=${clientId}`
+  );
+  return toJSONorThrow(res);
+}
+
+async function fetchClientByCpf(cpfOrCnpj) {
+  const shopId = await getShopId();
+  const res = await fetch(
+    `/getClient?p_id_marcenaria=${shopId}&p_cpf_cnpj=${cpfOrCnpj}`
+  );
+  return toJSONorThrow(res);
+}
+
+async function fetchCep(cep) {
+  const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+  return toJSONorThrow(res);
+}
+
+/* ================================
+   Renderização (responsabilidade: só mexer no DOM)
+================================ */
+
+function renderClientsTable(clients = []) {
+  const tbody = document.querySelector(SELECTORS.clientsTBody);
+  tbody.innerHTML = "";
+
+  if (!clients.length) {
+    const tr = document.createElement("tr");
+    const td = el("td", "Nenhum cliente encontrado");
+    td.setAttribute("colspan", "3");
+    td.style.textAlign = "center";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  clients.forEach((c) => {
     const tr = document.createElement("tr");
     tr.classList.add("row-end");
-    tr.innerHTML = `
-      <td ${style} >${element.p_id_cliente}</td>
-      <td>${element.p_cpf}</td>
-      <td>${element.p_nome}</td>
-    `;
-    tableBody.appendChild(tr);
+    tr.dataset.clientId = c.p_id_cliente;
+
+    const tdId = el("td", c.p_id_cliente);
+    tdId.style.textAlign = "center";
+    const tdCpf = el("td", c.p_cpf);
+    const tdName = el("td", c.p_nome);
+
+    tr.append(tdId, tdCpf, tdName);
+    frag.appendChild(tr);
   });
-  addEventToElement(".row-end", "click", handleRowAdress);
+  tbody.appendChild(frag);
 }
 
-async function handleRowAdress(event) {
-  const row = event.target.closest("tr");
-  const firstColum = row.cells[0].textContent;
-  await fillTableAdress(firstColum);
+function renderAddressesTable(addresses = []) {
+  const tbody = document.querySelector(SELECTORS.addressesTBody);
+  tbody.innerHTML = "";
 
+  if (!addresses.length) {
+    const tr = document.createElement("tr");
+    const td = el("td", "Nenhum endereço para este cliente");
+    td.setAttribute("colspan", "5");
+    td.style.textAlign = "center";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  addresses.forEach((a) => {
+    const tr = document.createElement("tr");
+    tr.append(
+      el("td", a.p_id),
+      el("td", a.p_tipo),
+      el("td", a.p_cep),
+      el("td", a.p_endereco),
+      el("td", a.p_numero),
+      el("td", a.p_bairro),
+      el("td", a.p_cidade),
+      el("td", a.p_estado)
+    );
+
+    tr.children[0].style.display = "none";
+    tr.children[1].style.textAlign = "center";
+    tr.children[7].style.textAlign = "center";
+
+    const tdBtn = document.createElement("td");
+    tdBtn.innerHTML = insertButtonCellTable(SELECTORS.delRowCep.slice(1));
+    tr.appendChild(tdBtn);
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+}
+
+function renderUfOptions() {
+  const select = document.querySelector(SELECTORS.ufSelect);
+  select.innerHTML = "";
+  const optDash = document.createElement("option");
+  optDash.value = "-";
+  optDash.textContent = "-";
+  select.appendChild(optDash);
+
+  const frag = document.createDocumentFragment();
+  UF_LIST.forEach((uf) => {
+    const option = document.createElement("option");
+    option.value = uf;
+    option.textContent = uf;
+    frag.appendChild(option);
+  });
+  select.appendChild(frag);
+}
+
+/* ================================
+   Ações de formulário / UI
+================================ */
+
+async function populateClients() {
+  try {
+    // opcional: mostrar loading
+    renderClientsTable([]);
+    const clients = await fetchClients();
+    renderClientsTable(clients);
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Erro", "Não foi possível carregar os clientes.", "error");
+  }
+}
+
+async function onClientRowClick(event) {
+  const row = event.target.closest("tr");
+  if (!row || !row.classList.contains("row-end")) return;
+
+  const idClient = row.dataset.clientId || row.cells[0]?.textContent?.trim();
+  if (!idClient) return;
+
+  // highlight de seleção
   document
-    .querySelectorAll("#ctable tbody tr")
+    .querySelectorAll(`${SELECTORS.clientsTBody} tr`)
     .forEach((tr) => tr.classList.remove("table-click-row"));
   row.classList.add("table-click-row");
+
+  try {
+    const addresses = await fetchAddresses(idClient);
+    renderAddressesTable(addresses);
+  } catch (err) {
+    console.error(err);
+    Swal.fire(
+      "Erro",
+      "Não foi possível carregar endereços do cliente.",
+      "error"
+    );
+  }
 }
 
-async function fillTableAdress(id_client) {
-  const id = await getCookie("id");
-  const response = await fetch(
-    `/getEnderecos?p_id_marcenaria=${id}&p_id_cliente=${id_client}`
+async function lookupCepAndFill() {
+  try {
+    const raw = getText("cepEndereco");
+    const cep = normalizeCep(raw);
+
+    const endereco = await API.getCep(getText("cepEndereco"));
+    if (endereco.erro) {
+      Swal.fire("CEP não encontrado", "Verifique o CEP informado.", "warning");
+      return;
+    }
+
+    setText("logradouroEndereco", endereco.logradouro || "");
+    setText("bairroEndereco", endereco.bairro || "");
+    setText("cidadeEndereco", endereco.localidade || "");
+    setText("ufEndereco", endereco.uf || "");
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Erro", "Falha ao consultar o CEP.", "error");
+  }
+}
+
+function addAddressFromForm() {
+  const tipoEndereco = getText("tipoEndereco");
+  const cepEndereco = getText("cepEndereco");
+  const cidadeEndereco = getText("cidadeEndereco");
+  const numeroEndereco = getText("numeroEndereco");
+  const ufEndereco = getText("ufEndereco");
+  const complementoEndereco = getText("complementoEndereco");
+  const logradouroEndereco = getText("logradouroEndereco");
+  const bairroEndereco = getText("bairroEndereco");
+
+  // Validações simples
+  if (!tipoEndereco || !cepEndereco || !logradouroEndereco || !numeroEndereco) {
+    Swal.fire(
+      "Atenção",
+      "Preencha os campos obrigatórios (tipo, CEP, logradouro, número).",
+      "info"
+    );
+    return;
+  }
+
+  const tbody = document.querySelector(SELECTORS.addressesTBody);
+  const tr = document.createElement("tr");
+
+  tr.append(
+    el("td", tipoEndereco),
+    el("td", cepEndereco),
+    el("td", logradouroEndereco),
+    el("td", numeroEndereco),
+    el("td", bairroEndereco),
+    el("td", cidadeEndereco),
+    el("td", ufEndereco)
   );
 
-  const data = await response.json();
-  const tableBody = document.querySelector("#etable tbody");
-  tableBody.innerHTML = "";
-  data.forEach((element) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${element.p_endereco}</td>
-      <td>${element.p_numero}</td>
-      <td>${element.p_cidade}</td>
-      <td>${element.p_estado}</td>
-      <td>${element.p_cep}</td>
-    `;
-    tableBody.appendChild(tr);
-  });
+  tr.children[0].style.textAlign = "center";
+
+  const tdBtn = document.createElement("td");
+  tdBtn.innerHTML = insertButtonCellTable(SELECTORS.delRowCep.slice(1));
+  tr.appendChild(tdBtn);
+  tbody.appendChild(tr);
 }
 
-async function findCep() {
-  const cep = getText("cepEndereco");
-  const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-  const endereco = await response.json();
-  setText("logradouroEndereco", endereco.logradouro);
-  setText("bairroEndereco", endereco.bairro);
-  setText("cidadeEndereco", endereco.localidade);
-  setText("ufEndereco", endereco.uf);
+async function populateClientFormByCpf() {
+  try {
+    const cpf = getText("cpf");
+
+    if (!cpf || !validarCpfCnpj(cpf)) {
+      Swal.fire("Erro", "CPF invalido.", "error");
+      return;
+    }
+
+    const data = await fetchClientByCpf(cpf);
+    if (!data || !data.length) return;
+
+    const cli = data[0];
+    setText("nome", cli.p_nome || "");
+    setText("telefone", cli.p_telefone || "");
+    setText("email", cli.p_email || "");
+    setText("indicacao", cli.p_indicacao || "");
+  } catch (err) {
+    console.error(err);
+    Swal.fire(
+      "Erro",
+      "Não foi possível buscar o cliente pelo CPF/CNPJ.",
+      "error"
+    );
+  }
 }
 
-function fillStates() {
-  const estados = [
-    "AC", // Acre
-    "AL", // Alagoas
-    "AP", // Amapá
-    "AM", // Amazonas
-    "BA", // Bahia
-    "CE", // Ceará
-    "DF", // Distrito Federal
-    "ES", // Espírito Santo
-    "GO", // Goiás
-    "MA", // Maranhão
-    "MT", // Mato Grosso
-    "MS", // Mato Grosso do Sul
-    "MG", // Minas Gerais
-    "PA", // Pará
-    "PB", // Paraíba
-    "PR", // Paraná
-    "PE", // Pernambuco
-    "PI", // Piauí
-    "RJ", // Rio de Janeiro
-    "RN", // Rio Grande do Norte
-    "RS", // Rio Grande do Sul
-    "RO", // Rondônia
-    "RR", // Roraima
-    "SC", // Santa Catarina
-    "SP", // São Paulo
-    "SE", // Sergipe
-    "TO", // Tocantins
-  ];
-  const select = document.getElementById("ufEndereco");
-  select.innerHTML = `<option value="-">-</option>`;
-  estados.forEach((item) => {
-    const option = document.createElement("option");
-    option.text = item;
-    option.value = item;
-    select.appendChild(option);
-  });
+/* ================================
+   Remoção de linhas (endereços)
+================================ */
+
+function deleteRow(e) {
+  // encontra o botão que foi realmente clicado (ou um pai dele)
+  const btn = e.target.closest(SELECTORS.delRowCep);
+  if (!btn) return; // clique não foi no botão de deletar
+
+  const tr = btn.closest("tr");
+  if (tr) tr.remove();
 }
 
-document.addEventListener("DOMContentLoaded", (event) => {
-  fillTableClients();
+/* ================================
+   Bootstrap da página (event wiring)
+================================ */
+
+function wireEvents() {
+  // Delegação: um ouvinte para as linhas da tabela de clientes
+  document
+    .querySelector(SELECTORS.clientsTBody)
+    .addEventListener("click", onClientRowClick);
+
+  // Buscar cliente ao alterar CPF
+  EventUtils.addEventToElement(
+    SELECTORS.cpfInput,
+    "change",
+    populateClientFormByCpf
+  );
+
+  // Consultar CEP ao sair do campo
+  EventUtils.addEventToElement(SELECTORS.cepInput, "blur", lookupCepAndFill);
+
+  // Adicionar endereço à tabela do formulário
+  EventUtils.addEventToElement(
+    SELECTORS.addAddressBtn,
+    "click",
+    addAddressFromForm
+  );
+
+  // Deleta a linha ta tabela
+  EventUtils.addEventToElement(SELECTORS.addressesTBody, "click", deleteRow);
+
+  // Melhorar UX de hover das tabelas existentes
   onmouseover("ctable");
   onmouseover("etable");
-  fillStates();
-});
+}
 
-addEventToElement("#cepEndereco", "blur", findCep);
+document.addEventListener("DOMContentLoaded", () => {
+  renderUfOptions();
+  populateClients();
+  wireEvents();
+});

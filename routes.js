@@ -70,6 +70,7 @@ route.post(
 
 // rotas Clientes
 route.get("/getClients", clientsController.getClients);
+route.get("/getClient", clientsController.getClient);
 route.get("/getEnderecos", clientsController.getEnderecos);
 
 // rotas meusDados.js
