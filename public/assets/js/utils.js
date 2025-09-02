@@ -1,6 +1,4 @@
 // utils.classed.js (ESM)
-
-import sweetalert2 from "./sweetalert2.esm.all.min.js";
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
 /* ============================

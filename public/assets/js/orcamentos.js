@@ -231,8 +231,10 @@ function renderMateriaisAmbienteTable(items) {
       centerCell(Number(it.p_preco).toFixed(2)),
       centerCell(Number(it.p_total).toFixed(2)),
     ]);
-    const tdBtn = html(insertButtonCellTable("delRow"));
-    tr.appendChild(tdBtn);
+    const td = document.createElement("td");
+    td.style.textAlign = "center";
+    td.innerHTML = insertButtonCellTable("delRow");
+    tr.appendChild(td);
     tbody.appendChild(tr);
   }
 }
@@ -605,10 +607,9 @@ async function onConfirmInserirCusto() {
   }
 }
 
-window.delRow = async function (button) {
-  const row = button.closest("tr");
-  const idItem = row.querySelectorAll("td")[0].textContent;
-
+async function delRow(button) {
+  const bt = button.target.closest(".delRow");
+  if (!bt) return;
   const payload = {
     p_id_marcenaria: AppState.idMarcenaria,
     p_id_orcamento: AppState.orcamentoAtual,
@@ -642,7 +643,7 @@ window.delRow = async function (button) {
       text: `ERRO: ${erro.message}`,
     });
   }
-};
+}
 
 async function onChangeTipoParcelamento() {
   const taxa = getText("txt_tipo");
@@ -821,6 +822,7 @@ async function loadAmbientesValores() {
 /* =========================
  * Totais (UI)
  * ========================= */
+
 async function atualizarTotaisUI() {
   const data = AppState.cache.totais || [];
   const selecionados = qa('#table-4 tbody input[type="checkbox"]')
@@ -894,6 +896,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "click",
     onConfirmInserirMaterialAmbiente
   );
+  addEventToElement("#table-2 tbody", "click", delRow);
   addEventToElement("#bt_new_custo", "click", onConfirmInserirCusto);
   addEventToElement("#txt_tipo", "change", onChangeTipoParcelamento);
   addEventToElement("#txt_entrada", "input", onChangeEntrada);

@@ -33,6 +33,7 @@ const SELECTORS = {
   addAddressBtn: "#adicionarEndereco",
   ufSelect: "#ufEndereco",
   delRowCep: ".delrowcep",
+  newClient: "#bt_newClient",
 };
 
 const UF_LIST = [
@@ -104,6 +105,14 @@ async function fetchClients() {
   const shopId = await getShopId();
   const res = await fetch(`/getClients?p_id_marcenaria=${shopId}`);
   return toJSONorThrow(res);
+}
+
+async function fetchNewClient(payload) {
+  const res = await fetch("/setClient", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 }
 
 async function fetchAddresses(clientId) {
@@ -262,6 +271,104 @@ async function onClientRowClick(event) {
   }
 }
 
+function getTextSafe(id) {
+  return (getText(id) || "").trim();
+}
+
+function getClientValues() {
+  const rawCpf = getTextSafe("cpf");
+  const cpf = rawCpf.replace(/\D/g, "");
+  const nome = getTextSafe("nome").toLocaleUpperCase("pt-BR");
+  const telefone = getTextSafe("telefone").replace(/\D/g, "");
+  const email = getTextSafe("email");
+  const indicacao = getTextSafe("indicacao");
+  return { cpf, nome, telefone, email, indicacao };
+}
+
+function validateRequired({ cpf, nome, telefone, email }) {
+  const faltando = [];
+  if (!cpf) faltando.push("CPF");
+  if (!nome) faltando.push("Nome");
+  if (!telefone) faltando.push("Telefone");
+  if (!email) faltando.push("Email");
+  return faltando;
+}
+
+function isEmailOk(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export async function validateClientForm(e) {
+  // se vier de um <form>
+  e?.preventDefault?.();
+
+  const v = getClientValues();
+
+  const faltando = validateRequired(v);
+  if (faltando.length) {
+    await Swal.fire("Atenção", `Preencha: ${faltando.join(", ")}.`, "info");
+    return false;
+  }
+
+  if (!validarCpfCnpj(v.cpf)) {
+    await Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: "CPF/CNPJ inválido!",
+    });
+    return false;
+  }
+
+  if (!isEmailOk(v.email)) {
+    await Swal.fire({ icon: "error", title: "ERRO", text: "Email inválido!" });
+    return false;
+  }
+
+  const { isConfirmed } = await Swal.fire({
+    icon: "question",
+    title: "Inserir",
+    text: "Deseja inserir novo cliente?",
+    showDenyButton: true,
+    denyButtonText: "Cancelar",
+    confirmButtonText: "Confirmar",
+  });
+  if (!isConfirmed) return false;
+
+  // opcional: desabilitar botão de submit se veio de um form
+  const btn = e?.submitter;
+  if (btn) btn.disabled = true;
+
+  try {
+    const data = {
+      p_id_marcenaria: await getShopId(),
+      p_cpf_cnpj: v.cpf,
+      p_nome: v.nome,
+      p_telefone: v.telefone,
+      p_email: v.email,
+      p_indicacao: v.indicacao,
+    };
+
+    await fetchNewClient(data);
+
+    await Swal.fire({
+      icon: "success",
+      title: "SUCESSO",
+      text: "Novo Cliente cadastrado com sucesso!",
+    });
+
+    return true;
+  } catch (erro) {
+    await Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: `Não foi possível salvar cliente: ${erro.message}`,
+    });
+    return false;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 async function lookupCepAndFill() {
   try {
     const raw = getText("cepEndereco");
@@ -393,6 +500,13 @@ function wireEvents() {
 
   // Deleta a linha ta tabela
   EventUtils.addEventToElement(SELECTORS.addressesTBody, "click", deleteRow);
+
+  // adiciona novo cliente
+  EventUtils.addEventToElement(
+    SELECTORS.newClient,
+    "click",
+    validateClientForm
+  );
 
   // Melhorar UX de hover das tabelas existentes
   onmouseover("ctable");

@@ -14,6 +14,12 @@ import Swal from "./sweetalert2.esm.all.min.js";
 
 import { clearTableBody, createRow } from "./dom.js";
 
+function el(tag, text) {
+  const node = document.createElement(tag);
+  if (text != undefined) node.textContent = text;
+  return node;
+}
+
 window.findCep = async function () {
   const cep = getText("txt_cep");
   const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
@@ -158,30 +164,7 @@ async function setMeusDados() {
   }
 }
 
-async function fillBanks1(params) {
-  const response = await fetch(
-    `/getBancos?p_id_marcenaria=${await getCookie("id")}`
-  );
-
-  const data = await response.json();
-  const tbody = document.getElementById("tbody-bank");
-  tbody.innerHTML = "";
-
-  data.forEach((item) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${item.p_banco}</td>
-      <td>${item.p_agencia}</td>
-      <td>${item.p_numero}</td>
-      <td>${item.p_tipo_conta}</td>
-      <td>${item.p_pix}</td>
-      ${insertButtonCellTable("delBanco")}
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-async function fillBanks(params) {
+async function fillBanks() {
   const response = await fetch(
     `/getBancos?p_id_marcenaria=${await getCookie("id")}`
   );
@@ -190,15 +173,18 @@ async function fillBanks(params) {
   const tbody = document.getElementById("tbody-bank");
   clearTableBody("#tbody-bank");
   data.forEach((item) => {
-    const line = `
-      <td>${item.p_banco}</td>
-      <td>${item.p_agencia}</td>
-      <td>${item.p_numero}</td>
-      <td>${item.p_tipo_conta}</td>
-      <td>${item.p_pix}</td>
-      ${insertButtonCellTable("delBanco")}
-    `;
-    const tr = createRow(line);
+    const tr = document.createElement("tr");
+    tr.append(
+      el("td", item.p_banco),
+      el("td", item.p_agencia),
+      el("td", item.p_numero),
+      el("td", item.p_tipo_conta),
+      el("td", item.p_pix)
+    );
+    const td = document.createElement("td");
+    td.innerHTML = insertButtonCellTable("delBank");
+    tr.append(td);
+    td.style.textAlign = "center";
     tbody.appendChild(tr);
   });
 }
@@ -241,10 +227,14 @@ async function setBanco() {
       title: "SUCESSO",
       text: "Banco inserido com sucesso !!!",
     });
+    fillBanks();
   }
 }
 
-window.delBanco = async function (button) {
+async function delBanco(button) {
+  const bt = button.target.closest(".delBank");
+  if (!bt) return;
+
   const result = await Swal.fire({
     icon: "question",
     text: "Deseja excluir banco ?",
@@ -252,14 +242,12 @@ window.delBanco = async function (button) {
     denyButtonText: "Não",
     showDenyButton: true,
   });
-
   if (result.isConfirmed) {
     try {
       const data = {
         p_id_marcenaria: await getCookie("id"),
-        p_banco: getValue(button),
+        p_banco: getValue(bt),
       };
-
       const response = await fetch(`./setDelBanco`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -270,21 +258,29 @@ window.delBanco = async function (button) {
         title: "Sucesso",
         text: "Banco removido com Sucesso !!!",
       });
-    } catch {
+      removeRow(button);
+    } catch (erro) {
       Swal.fire({
         icon: "error",
-        title: "ERRo",
-        text: "Não foi possivel salvar Alterações",
+        title: "ERRO",
+        text: `Não foi possivel salvar Alterações ${erro.message}`,
       });
     }
   }
-};
+}
 
 function getValue(button) {
   const linha = button.closest("tr");
   const valor = linha.cells[0].innerHTML;
   return valor;
 }
+
+function removeRow(e) {
+  const line = e.target.closest("tr");
+  if (!line) return;
+  line.remove();
+}
+
 document.addEventListener("DOMContentLoaded", (event) => {
   fillStates();
   formatCEP("txt_cep");
@@ -293,4 +289,5 @@ document.addEventListener("DOMContentLoaded", (event) => {
   fillBanks();
   addEventToElement("#bt_update", "click", setMeusDados);
   addEventToElement("#bt_add_bank", "click", setBanco);
+  addEventToElement("#tbody-bank", "click", delBanco);
 });
