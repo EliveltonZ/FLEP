@@ -27,7 +27,6 @@ export class DateUtils {
     return `${y}-${m}-${d}`;
   }
 }
-
 /* ============================
    DOM utils (leitura/escrita)
 ============================ */

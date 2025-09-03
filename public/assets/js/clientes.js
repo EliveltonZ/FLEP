@@ -115,12 +115,24 @@ async function fetchNewClient(payload) {
   });
 }
 
+var idCliente = "";
+
 async function fetchAddresses(clientId) {
+  idCliente = clientId;
+  console.log(idCliente);
   const shopId = await getShopId();
   const res = await fetch(
     `/getEnderecos?p_id_marcenaria=${shopId}&p_id_cliente=${clientId}`
   );
   return toJSONorThrow(res);
+}
+
+async function fetchAddress(params) {
+  const res = await fetch("/setEndereco", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
 }
 
 async function fetchClientByCpf(cpfOrCnpj) {
@@ -390,7 +402,7 @@ async function lookupCepAndFill() {
   }
 }
 
-function addAddressFromForm() {
+async function addAddressFromForm() {
   const tipoEndereco = getText("tipoEndereco");
   const cepEndereco = getText("cepEndereco");
   const cidadeEndereco = getText("cidadeEndereco");
@@ -409,6 +421,30 @@ function addAddressFromForm() {
     );
     return;
   }
+  const result = await Swal.fire({
+    icon: "question",
+    title: "Inserir",
+    text: "Deseja inserir novo endereco",
+    showDenyButton: true,
+    denyButtonText: "Cancelar",
+    confirmButtonText: "Confirmar",
+  });
+
+  if (!result.isConfirmed) return;
+
+  const data = {
+    p_id_marcenaria: await getShopId(),
+    p_id_cliente: parseInt(idCliente),
+    p_endereco: logradouroEndereco,
+    p_cep: cepEndereco,
+    p_cidade: cidadeEndereco,
+    p_estado: ufEndereco,
+    p_numero: numeroEndereco,
+    p_tipo: tipoEndereco,
+    p_bairro: bairroEndereco,
+  };
+  // console.log(data);
+  fetchAddress(data);
 
   const tbody = document.querySelector(SELECTORS.addressesTBody);
   const tr = document.createElement("tr");

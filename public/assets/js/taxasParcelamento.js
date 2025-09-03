@@ -70,12 +70,21 @@ async function fillTableFinanciamento() {
 }
 
 window.setTaxa = async function () {
+  if (!getText("txt_tipo")) {
+    Swal.fire({
+      icon: "warning",
+      title: "Atenção",
+      text: "Selecione o tipo da taxa",
+    });
+    return;
+  }
+
   const result = Swal.fire({
     icon: "question",
     showDenyButton: true,
     denyButtonText: "Cancelar",
     confirmButtonText: "Confirmar",
-    text: "Inserir taxa ?",
+    text: "Deseja inserir taxa ?",
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
@@ -85,7 +94,6 @@ window.setTaxa = async function () {
           p_taxa: getText("txt_taxa"),
           p_tipo: getText("txt_tipo"),
         };
-
         const response = await fetch(`setTaxasParcelamentos`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

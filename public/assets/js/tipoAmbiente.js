@@ -35,7 +35,7 @@ window.setCategoriaAmbiente = async function () {
     try {
       const data = {
         p_id_marcenaria: await getCookie("id"),
-        p_categoria: getText("txt_categoria"),
+        p_categoria: getText("txt_categoria").toUpperCase(),
       };
 
       const response = await fetch(`./setCategoriasAmbientes`, {
