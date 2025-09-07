@@ -167,11 +167,11 @@ const api = {
     }),
 
   // IMPORTANTE: se o endpoint correto for /totalOrcamentos (com "r"), troque aqui.
-  getValoresOrcamento: () =>
+  getValoresOrcamento: (idOrc) =>
     fetchJson(
       `/totalOcamentos?p_id_marcenaria=${encodeURIComponent(
         AppState.idMarcenaria
-      )}&p_id_orcamento=${encodeURIComponent(AppState.orcamentoAtual)}`
+      )}&p_id_orcamento=${encodeURIComponent(idOrc)}`
     ),
 
   getTaxasParcelamentos: (tipo) =>
@@ -189,6 +189,15 @@ const api = {
     }),
 };
 
+function createButton(_class) {
+  return `
+    <td style="text-align: center" >
+      <button class="btn bt-color ${_class}" type="button" style="padding: 0px;height: 24px;width: 20px;">
+        <i class="icon ion-social-usd"></i>
+      </button>
+    </td>
+  `;
+}
 /* =========================
  * Renderizadores puros
  * ========================= */
@@ -203,6 +212,7 @@ function renderOrcamentosTable(items) {
       centerCell(it.p_status),
       centerCell(convertDataBr(it.p_data)),
     ]);
+    tr.innerHTML += createButton("order");
     tbody.appendChild(tr);
   }
 }
@@ -428,7 +438,6 @@ async function onRowDblClickOrcamentos(e) {
 
   try {
     await loadAmbientes(idOrc);
-    await loadAmbientesValores();
     await loadCustos();
 
     const trigger = document.querySelector('a[href="#tab-2"]');
@@ -609,7 +618,9 @@ async function onConfirmInserirCusto() {
 
 async function delRow(button) {
   const bt = button.target.closest(".delRow");
+  const idItem = bt.closest("tr").cells[0].textContent.trim();
   if (!bt) return;
+
   const payload = {
     p_id_marcenaria: AppState.idMarcenaria,
     p_id_orcamento: AppState.orcamentoAtual,
@@ -782,9 +793,9 @@ async function loadTaxasParcelamento(tipo) {
   }
 }
 
-async function loadAmbientesValores() {
+async function loadAmbientesValores(idOrc) {
   try {
-    if (!AppState.idMarcenaria || !AppState.orcamentoAtual) {
+    if (!AppState.idMarcenaria || !idOrc) {
       console.warn("Guards: idMarcenaria/orcamentoAtual ausentes", AppState);
       Swal.fire({
         icon: "warning",
@@ -794,7 +805,7 @@ async function loadAmbientesValores() {
       return;
     }
 
-    const data = await api.getValoresOrcamento();
+    const data = await api.getValoresOrcamento(idOrc);
     if (!Array.isArray(data)) {
       console.warn("Esperava array em getValoresOrcamento, recebi:", data);
       AppState.cache.totais = [];
@@ -847,6 +858,14 @@ function bindParcelamentoRadios() {
   });
 }
 
+async function teste(e) {
+  const tr = e.target.closest("tr");
+  const idOrc = tr.cells[0].textContent.trim();
+  await loadAmbientesValores(idOrc);
+  const trigger = document.querySelector('a[href="#tab-5"]');
+  if (trigger) bootstrap.Tab.getOrCreateInstance(trigger).show();
+}
+
 /* =========================
  * Inicialização
  * ========================= */
@@ -888,6 +907,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   addEventToElement("#table-ambientes", "dblclick", onRowDblClickAmbientes);
   addEventToElement("#table_materiais tbody", "click", onClickMaterialLinha);
   addEventToElement("#table-clientes", "click", onClickCliente);
+  addEventToElement(".order", "click", teste);
 
   addEventToElement("#bt_new_orcamento", "click", onConfirmGerarOrcamento);
   addEventToElement("#bt_new_ambiente", "click", onConfirmSetAmbiente);

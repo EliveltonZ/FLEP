@@ -17,6 +17,7 @@ import {
   validarCpfCnpj,
 } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
+import { enableTableFilterSort } from "./filtertable.js";
 
 /* ================================
    Constantes & helpers
@@ -119,12 +120,19 @@ var idCliente = "";
 
 async function fetchAddresses(clientId) {
   idCliente = clientId;
-  console.log(idCliente);
   const shopId = await getShopId();
   const res = await fetch(
     `/getEnderecos?p_id_marcenaria=${shopId}&p_id_cliente=${clientId}`
   );
   return toJSONorThrow(res);
+}
+
+async function fetchDelAddress(params) {
+  const res = await fetch("/delEndereco", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
 }
 
 async function fetchAddress(params) {
@@ -190,7 +198,7 @@ function renderAddressesTable(addresses = []) {
   if (!addresses.length) {
     const tr = document.createElement("tr");
     const td = el("td", "Nenhum endereço para este cliente");
-    td.setAttribute("colspan", "5");
+    td.setAttribute("colspan", "8");
     td.style.textAlign = "center";
     tr.appendChild(td);
     tbody.appendChild(tr);
@@ -443,10 +451,14 @@ async function addAddressFromForm() {
     p_tipo: tipoEndereco,
     p_bairro: bairroEndereco,
   };
-  // console.log(data);
-  fetchAddress(data);
 
   const tbody = document.querySelector(SELECTORS.addressesTBody);
+  const addresses = await fetchAddresses(data.p_id_cliente);
+  if (!addresses.length) {
+    tbody.innerHTML = "";
+  }
+  fetchAddress(data);
+
   const tr = document.createElement("tr");
 
   tr.append(
@@ -465,6 +477,12 @@ async function addAddressFromForm() {
   tdBtn.innerHTML = insertButtonCellTable(SELECTORS.delRowCep.slice(1));
   tr.appendChild(tdBtn);
   tbody.appendChild(tr);
+
+  Swal.fire({
+    icon: "success",
+    title: "SUCESSO",
+    text: "Endereço inserido com Sucesso !!",
+  });
 }
 
 async function populateClientFormByCpf() {
@@ -497,14 +515,45 @@ async function populateClientFormByCpf() {
 /* ================================
    Remoção de linhas (endereços)
 ================================ */
-
-function deleteRow(e) {
+async function deleteRow(e) {
   // encontra o botão que foi realmente clicado (ou um pai dele)
   const btn = e.target.closest(SELECTORS.delRowCep);
   if (!btn) return; // clique não foi no botão de deletar
 
   const tr = btn.closest("tr");
-  if (tr) tr.remove();
+  const firstCellValue = tr.cells[0].innerText.trim();
+
+  const result = await Swal.fire({
+    icon: "question",
+    title: "Excluir",
+    text: "Deseja deletar endereço ?",
+    showDenyButton: true,
+    denyButtonText: "Cancelar",
+    confirmButtonText: "Confirmar",
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const data = {
+      p_id: firstCellValue,
+      p_id_marcenaria: await getShopId(),
+    };
+    fetchDelAddress(data);
+    tr.remove();
+
+    Swal.fire({
+      icon: "success",
+      title: "SUCESSO",
+      text: "Endereço removido com Sucesso !!!",
+    });
+  } catch (err) {
+    Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: `FALHA: ${err.message}`,
+    });
+  }
 }
 
 /* ================================
@@ -553,4 +602,5 @@ document.addEventListener("DOMContentLoaded", () => {
   renderUfOptions();
   populateClients();
   wireEvents();
+  enableTableFilterSort("ctable");
 });

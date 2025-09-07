@@ -6,4 +6,5 @@ module.exports = {
   setClient: createRpcHandler("set_cliente", "body"),
   getEnderecos: createRpcHandler("get_enderecos", "quey"),
   setEndereco: createRpcHandler("set_endereco", "body"),
+  delEndereco: createRpcHandler("del_endereco", "body"),
 };
