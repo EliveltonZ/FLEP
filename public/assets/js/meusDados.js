@@ -77,11 +77,11 @@ function checkRadios() {
     radio.addEventListener("change", () => {
       if (radio.checked) {
         if (radio.id == "radio-pj") {
-          setInnerHtml("lb_nome", "Razão Social:");
-          setInnerHtml("lb_documento", "CNPJ:");
+          setInnerHtml("lb_nome", "Razão Social: *");
+          setInnerHtml("lb_documento", "CNPJ: *");
         } else {
-          setInnerHtml("lb_nome", "Nome:");
-          setInnerHtml("lb_documento", "CPF:");
+          setInnerHtml("lb_nome", "Nome: *");
+          setInnerHtml("lb_documento", "CPF: *");
         }
       }
     });

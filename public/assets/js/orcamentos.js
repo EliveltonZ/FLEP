@@ -53,6 +53,7 @@ const AppState = {
     ambientes: new Map(), // idOrcamento -> array
     materiaisAmbiente: new Map(), // idAmbiente -> array
     totais: null, // resultado de /totalOcamentos
+    comissoes: null,
   },
 };
 
@@ -98,6 +99,13 @@ const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }),
+
+  getComissoes: () =>
+    fetchJson(
+      `/getComissoes?p_id_marcenaria=${encodeURIComponent(
+        AppState.idMarcenaria
+      )}`
+    ),
 
   getAmbientes: (idOrcamento) =>
     fetchJson(
@@ -338,32 +346,37 @@ function floatValue(value) {
 }
 
 function computeTotals({ selecionados, entradaReais, taxaPercent }) {
-  const totals = {
+  var totals = {
     material: 0,
     instalacao: 0,
     rt: 0,
-    projetista: 0,
-    comercial: 0,
-    planoCorte: 0,
-    montador: 0,
     aVista: 0,
     imposto: 0,
     lucro: 0,
   };
 
-  for (const item of selecionados) {
-    const ambiente = item.p_ambiente;
+  AppState.cache.comissoes.forEach((item) => {
+    if (item.p_descricao.toLowerCase() == "comissão/rt") return;
+    const key = (item.p_descricao || "").toLowerCase();
+    totals[key] = 0;
+  });
+
+  for (var item of selecionados) {
+    var ambiente = item.p_ambiente;
     totals.material += item.p_material;
     totals.instalacao += item.p_instalacao;
     totals.rt += item.p_valor_rt;
-    totals.projetista += ambiente * 0.05;
-    totals.comercial += ambiente * 0.03;
-    totals.planoCorte += ambiente * 0.01;
-    totals.montador += ambiente * 0.1;
-    totals.aVista += item.p_total;
     totals.imposto = item.p_imp;
     totals.lucro = item.p_luc;
+    totals.aVista += item.p_total;
+    AppState.cache.comissoes.forEach((item) => {
+      if (item.p_descricao.toLowerCase() == "comissão/rt") return;
+      const key = (item.p_descricao || "").toLowerCase();
+      totals[key] += ambiente * (item.p_valor / 100);
+    });
   }
+
+  console.log(totals);
 
   const taxa = taxaPercent / 100;
   const entrada = totals.aVista - entradaReais;
@@ -381,6 +394,42 @@ function computeTotals({ selecionados, entradaReais, taxaPercent }) {
   return { totals, total, taxa, comEntrada, comTaxa };
 }
 
+async function loadComissoes() {
+  if (!AppState.idMarcenaria) {
+    throw new Error("idMarcenaria não definido");
+  }
+  AppState.cache.comissoes = await api.getComissoes();
+}
+
+function createElementComissao(name, id_label, percent, value) {
+  return `
+  <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;">
+    <label class="form-label" style="width: 40%;">${name}:</label>
+    <label id="lb_${id_label}_p" class="form-label">${percent}%</label>
+    <label id="lb_${id_label}" class="form-label">${formatCurrency(
+    value
+  )}</label>
+  </div>
+  `;
+}
+
+function renderComissoes() {
+  const div = document.querySelector("#div-custos");
+  AppState.cache.comissoes.forEach((item) => {
+    if (item.p_descricao.toLowerCase() == "comissão/rt") return;
+    div.innerHTML += createElementComissao(
+      item.p_descricao,
+      item.p_descricao.toLowerCase(),
+      0,
+      0
+    );
+  });
+}
+
+function removeSpace(value) {
+  return value.replace(" ", "");
+}
+
 function applyTotalsToUI(calc) {
   const { totals, total, taxa, comEntrada, comTaxa } = calc;
   const percentOfComTaxa = (value) =>
@@ -396,10 +445,19 @@ function applyTotalsToUI(calc) {
   setInnerHtml("lb_instalacao_p", percentOfComTaxa(totals.instalacao));
 
   setInnerHtml("lb_comissaort", formatCurrency(totals.rt));
-  setInnerHtml("lb_projetista", formatCurrency(totals.projetista));
-  setInnerHtml("lb_comercial", formatCurrency(totals.comercial));
-  setInnerHtml("lb_planodecorte", formatCurrency(totals.planoCorte));
-  setInnerHtml("lb_montador", formatCurrency(totals.montador));
+
+  AppState.cache.comissoes.forEach((item) => {
+    setInnerHtml(
+      `lb_${item.p_descricao.toLowerCase()}`,
+      formatCurrency(totals[item.p_descricao.toLowerCase()])
+    );
+
+    setInnerHtml(
+      `lb_${item.p_descricao.toLowerCase()}_p`,
+      formatPercent(item.p_valor)
+    );
+  });
+
   setInnerHtml("lb_total", formatCurrency(totals.aVista));
 
   setInnerHtml("lb_lucro", formatCurrency(total * totals.lucro));
@@ -887,6 +945,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // carregamento inicial
   await Promise.all([
+    loadComissoes(),
     loadOrcamentos(),
     loadCategoriasAmbientes(),
     loadClientes(),
@@ -923,4 +982,5 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // radios
   bindParcelamentoRadios();
+  renderComissoes();
 });

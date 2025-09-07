@@ -11,9 +11,8 @@
     <link rel="stylesheet" href="assets/fonts/font-awesome.min.css?h=28d14b47338f273ae463f5202a7b3039">
     <link rel="stylesheet" href="assets/fonts/ionicons.min.css?h=28d14b47338f273ae463f5202a7b3039">
     <link rel="stylesheet" href="assets/fonts/fontawesome5-overrides.min.css?h=28d14b47338f273ae463f5202a7b3039">
-    <link rel="stylesheet" href="assets/css/styles.min.css?h=23d05103d663e543f17c91f549495fca">
-    <link rel="stylesheet" href="assets/css/animate.min.min.css?h=5512c3e92e3931978c9ddcc7dbeed22b">
-    <link rel="stylesheet" href="assets/css/css/style.min.css?h=dce76f73d8b6a458e499f974eb8c1b33">
+    <link rel="stylesheet" href="assets/css/styles.min.css?h=ccf80a10438bafc71a1c5b870e88ead4">
+    <link rel="stylesheet" href="assets/css/css/style.min.css?h=7696fdd960ab0c2aa09418d235c5a88c">
 <script type="module" src="assets/js/meusDados.js"></script>
 </head>
 
@@ -53,18 +52,19 @@
                                                 <div class="form-check"><input class="form-check-input" type="radio" id="radio-pf" name="tipo" checked="" value="PF"><label for="radio-pf">Pessoa Física</label></div>
                                                 <div class="form-check"><input class="form-check-input" type="radio" id="radio-pj" name="tipo" value="PJ"><label for="radio-pj">Pessoa Jurídica</label></div>
                                             </div>
-                                            <div class="text-nowrap d-flex" style="width: 100%;gap: 2%;"><label class="form-label" id="lb_nome" style="margin-top: 3px;">Nome:</label><input class="form-control" type="text" id="txt_razaosocial"></div>
-                                            <div class="d-flex align-items-end gap-2" style="width: 50%;"><label class="form-label" id="lb_documento">CPF:</label><input class="form-control" type="text" id="txt_cnpj_cpf" style="text-align: center;"></div>
+                                            <div class="text-nowrap d-flex" style="width: 100%;gap: 2%;"><label class="form-label text-nowrap" id="lb_nome" style="margin-top: 3px;">Nome: *</label><input class="form-control" type="text" id="txt_razaosocial"></div>
+                                            <div class="d-flex align-items-end gap-2" style="width: 50%;"><label class="form-label text-nowrap" id="lb_documento">CPF: *</label><input class="form-control" type="text" id="txt_cnpj_cpf" style="text-align: center;"></div>
                                         </div>
                                         <div class="d-flex align-items-end gap-5" style="margin-top: 40px;">
-                                            <div style="width: 20%;"><label class="form-label">CEP:</label><input class="form-control" type="text" id="txt_cep" onblur="findCep()" style="text-align: center;" maxlength="9" minlength="9"></div>
-                                            <div style="width: 80%;"><label class="form-label">Endereço:</label><input class="form-control" type="text" id="txt_endereco"></div>
+                                            <div style="width: 20%;"><label class="form-label text-nowrap">CEP: *</label><input class="form-control" type="text" id="txt_cep" onblur="findCep()" style="text-align: center;" maxlength="9" minlength="9"></div>
+                                            <div style="width: 80%;"><label class="form-label text-nowrap">Endereço: *</label><input class="form-control" type="text" id="txt_endereco"></div>
+                                            <div style="width: 20%;"><label class="form-label text-nowrap">% Lucro: *</label><input class="form-control" type="text" id="txt_cep-1" style="text-align: center;"></div>
                                         </div>
                                         <div class="justify-content-between div-block" style="display: flex;gap: 2%;margin-top: 50px;height: 29px;">
-                                            <div class="d-flex align-items-center gap-3"><label class="form-label">Bairro:</label><input class="form-control" type="text" id="txt_bairro" style="text-align: center;" autocomplete="off"></div>
-                                            <div class="d-flex align-items-center gap-3"><label class="form-label">Cidade:</label><input class="form-control" type="text" id="txt_cidade" style="text-align: center;"></div>
-                                            <div class="d-flex align-items-center gap-3"><label class="form-label">Estado:</label><select class="form-select" id="txt_estado" style="width: 80px;text-align: center;"></select></div>
-                                            <div class="d-flex align-items-center gap-3"><label class="form-label">Numero:</label><input class="form-control" type="text" id="txt_numero" style="text-align: center;width: 80px;"></div><button class="btn bt-color" id="bt_bancos" type="button" data-bs-target="#modal" data-bs-toggle="modal" style="font-size: 12px;">Bancos</button>
+                                            <div class="d-flex align-items-center gap-3"><label class="form-label text-nowrap">Bairro: *</label><input class="form-control" type="text" id="txt_bairro" style="text-align: center;" autocomplete="off"></div>
+                                            <div class="d-flex align-items-center gap-3"><label class="form-label text-nowrap">Cidade: *</label><input class="form-control" type="text" id="txt_cidade" style="text-align: center;"></div>
+                                            <div class="d-flex align-items-center gap-3"><label class="form-label text-nowrap">Estado: *</label><select class="form-select" id="txt_estado" style="width: 80px;text-align: center;"></select></div>
+                                            <div class="d-flex align-items-center gap-3"><label class="form-label text-nowrap">Numero: *</label><input class="form-control" type="text" id="txt_numero" style="text-align: center;width: 80px;"></div><button class="btn bt-color" id="bt_bancos" type="button" data-bs-target="#modal" data-bs-toggle="modal" style="font-size: 12px;">Bancos</button>
                                         </div>
                                         <div class="justify-content-center" style="margin-top: 30px;gap: 30px;display: flex;"><button class="btn bt-color" id="bt_update" type="button">Salvar</button></div>
                                     </form>

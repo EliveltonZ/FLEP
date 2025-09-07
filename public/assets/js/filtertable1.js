@@ -9,7 +9,7 @@ export function enableTableFilterSort(tableId) {
   Object.assign(popup.style, {
     display: "none",
     position: "absolute",
-    zIndex: 1000,
+    zIndex: 1100,
     whiteSpace: "nowrap",
     width: "auto",
     maxWidth: "none",
@@ -128,13 +128,13 @@ export function enableTableFilterSort(tableId) {
       popup.innerHTML = `
         <div class="p-3">
           <h6 class="card-title mb-2">Filtrar coluna</h6>
-          <input type="text" id="searchInput" autocomplete="off" class="form-control form-control-sm mb-3" placeholder="Buscar...">
+          <input type="text" id="searchInput" class="form-control form-control-sm mb-3" placeholder="Buscar...">
           <button class="btn btn-sm btn-secondary mb-2" id="toggleSelectAll">Marcar/Desmarcar Todos</button>
           <div class="overflow-auto mb-3" style="max-height:200px;">
             ${uniqueValues
               .map(
                 (val, i) => `
-              <div class="form-check">
+              <div>
                 <input class="form-check-input filter-checkbox" type="checkbox" data-col="${colIndex}" value="${val}" id="chk_${colIndex}_${i}">
                 <label class="form-check-label" for="chk_${colIndex}_${i}">${val}</label>
               </div>`

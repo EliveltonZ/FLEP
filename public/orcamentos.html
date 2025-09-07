@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="assets/fonts/font-awesome.min.css?h=28d14b47338f273ae463f5202a7b3039">
     <link rel="stylesheet" href="assets/fonts/ionicons.min.css?h=28d14b47338f273ae463f5202a7b3039">
     <link rel="stylesheet" href="assets/fonts/fontawesome5-overrides.min.css?h=28d14b47338f273ae463f5202a7b3039">
-    <link rel="stylesheet" href="assets/css/styles.min.css?h=e905fac352f8262bf03f05df9de00080">
+    <link rel="stylesheet" href="assets/css/styles.min.css?h=fa6fcb0bcafdebd64c401dc7f685cecc">
     <link rel="stylesheet" href="assets/css/css/style.min.css?h=7696fdd960ab0c2aa09418d235c5a88c">
 <script type="module" src="assets/js/orcamentos.js"></script>
 </head>
@@ -148,7 +148,7 @@
                                                                     </table>
                                                                 </div>
                                                             </div>
-                                                            <div>
+                                                            <div style="margin-top: 20px;">
                                                                 <h4 style="width: 100%;text-align: center;">Orçamento inicial</h4>
                                                                 <div class="justify-content-between" style="display: flex;gap: 10px"><label class="form-label">Valor Ultimo Orçamento</label><label class="form-label" id="lb_ultimo_orcamento">...</label></div>
                                                                 <div class="justify-content-between" style="display: flex;gap: 10px"><label class="form-label">Nº Parcelas Orçadas</label><label class="form-label">...</label></div>
@@ -176,17 +176,13 @@
                                                                 </div>
                                                             </div>
                                                             <div class="text-nowrap" style="padding: 10px;border: 1px solid rgba(120,120,121,0.61);border-radius: 15px;min-width: 30%;width: 48%;">
-                                                                <div id="div-custos">
+                                                                <div id="div-custos" class="overflow-auto" style="max-height: 360px;">
                                                                     <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Impostos:</label><label class="form-label" id="lb_impostos_p">0%</label><label class="form-label" id="lb_impostos">R$ 0,00</label></div>
                                                                     <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Juros:</label><label class="form-label" id="lb_juros_p">0%</label><label class="form-label" id="lb_juros">R$ 0,00</label></div>
                                                                     <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Material:</label><label class="form-label" id="lb_material_p">0%</label><label class="form-label" id="lb_material">R$ 0,00</label></div>
                                                                     <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Custo de Instalação:</label><label class="form-label" id="lb_instalacao_p">0%</label><label class="form-label" id="lb_instalacao">R$ 0,00</label></div>
                                                                     <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Custos Adicionais:</label><label class="form-label" id="lb_custoadicional_p">0%</label><label class="form-label" id="lb_custoadicional">R$ 0,00</label></div>
                                                                     <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Comissão / RT:</label><label class="form-label" id="lb_comissaort_p">0%</label><label class="form-label" id="lb_comissaort">R$ 0,00</label></div>
-                                                                    <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Projetista:</label><label class="form-label" id="lb_projetista_p">0%</label><label class="form-label" id="lb_projetista">R$ 0,00</label></div>
-                                                                    <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Comercial:</label><label class="form-label" id="lb_comercial_p">0%</label><label class="form-label" id="lb_comercial">R$ 0,00</label></div>
-                                                                    <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Plano de Corte:</label><label class="form-label" id="lb_planodecorte_p">0%</label><label class="form-label" id="lb_planodecorte">R$ 0,00</label></div>
-                                                                    <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Montador:</label><label class="form-label" id="lb_montador_p">0%</label><label class="form-label" id="lb_montador">R$ 0,00</label></div>
                                                                 </div>
                                                                 <div class="justify-content-between" style="display: flex;gap: 20px;margin: 20px 0 10px 0"><label class="form-label" style="width: 40%;">Gasto por Hora:</label><label class="form-label" id="lb_gasto_p">0%</label><label class="form-label" id="lb_gasto">R$ 0,00</label></div>
                                                                 <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;"><label class="form-label" style="width: 40%;">Lucro:</label><label class="form-label" id="lb_lucro_p">0%</label><label class="form-label" id="lb_lucro">R$ 0,00</label></div>
