@@ -356,7 +356,9 @@ function computeTotals({ selecionados, entradaReais, taxaPercent }) {
   };
 
   AppState.cache.comissoes.forEach((item) => {
-    if (item.p_descricao.toLowerCase() == "comissão/rt") return;
+    if (item.p_descricao.toLowerCase() == "comissão/rt") {
+      totals.percentRt = item.p_valor;
+    }
     const key = (item.p_descricao || "").toLowerCase();
     totals[key] = 0;
   });
@@ -375,8 +377,6 @@ function computeTotals({ selecionados, entradaReais, taxaPercent }) {
       totals[key] += ambiente * (item.p_valor / 100);
     });
   }
-
-  console.log(totals);
 
   const taxa = taxaPercent / 100;
   const entrada = totals.aVista - entradaReais;
@@ -426,10 +426,6 @@ function renderComissoes() {
   });
 }
 
-function removeSpace(value) {
-  return value.replace(" ", "");
-}
-
 function applyTotalsToUI(calc) {
   const { totals, total, taxa, comEntrada, comTaxa } = calc;
   const percentOfComTaxa = (value) =>
@@ -444,8 +440,6 @@ function applyTotalsToUI(calc) {
   setInnerHtml("lb_instalacao", formatCurrency(totals.instalacao));
   setInnerHtml("lb_instalacao_p", percentOfComTaxa(totals.instalacao));
 
-  setInnerHtml("lb_comissaort", formatCurrency(totals.rt));
-
   AppState.cache.comissoes.forEach((item) => {
     setInnerHtml(
       `lb_${item.p_descricao.toLowerCase()}`,
@@ -458,9 +452,13 @@ function applyTotalsToUI(calc) {
     );
   });
 
+  setInnerHtml("lb_comissaort", formatCurrency(totals.rt));
+  setInnerHtml("lb_comissaort_p", formatPercent(totals.percentRt));
+
   setInnerHtml("lb_total", formatCurrency(totals.aVista));
 
   setInnerHtml("lb_lucro", formatCurrency(total * totals.lucro));
+  setInnerHtml("lb_lucro_p", formatPercent(totals.lucro * 100));
   setInnerHtml("lb_impostos", formatCurrency(total * totals.imposto));
   setInnerHtml("lb_totaljuros", formatCurrency(comEntrada));
   setInnerHtml("lb_totalproposta", formatCurrency(total));

@@ -117,9 +117,39 @@ async function getDados() {
   setText("txt_cidade", data[0].p_cidade);
   setText("txt_estado", data[0].p_estado);
   setText("txt_numero", data[0].p_numero);
+  setText("txt_lucro", data[0].p_lucro);
 }
 
 async function setMeusDados() {
+  const nomerazao = getText("txt_razaosocial");
+  const cpfcnpj = getText("txt_cnpj_cpf");
+  const cep = getText("txt_cep");
+  const endereco = getText("txt_endereco");
+  const bairro = getText("txt_bairro");
+  const cidade = getText("txt_cidade");
+  const estado = getText("txt_estado");
+  const numero = getText("txt_numero");
+  const lucro = getText("txt_lucro");
+
+  if (
+    !nomerazao ||
+    !cpfcnpj ||
+    !cep ||
+    !endereco ||
+    !bairro ||
+    !cidade ||
+    !estado ||
+    !numero ||
+    !lucro
+  ) {
+    Swal.fire({
+      icon: "warning",
+      title: "ATENÇÃO",
+      text: "Preencha os campos Obrigatórios",
+    });
+    return;
+  }
+
   const result = await Swal.fire({
     icon: "question",
     title: "Salvar",
@@ -129,19 +159,20 @@ async function setMeusDados() {
     confirmButtonText: "Confirmar",
   });
 
-  if (result.isConfirmed) {
+  if (result.isConfirmed)
     try {
       const data = {
         p_id: await getCookie("id"),
         p_tipocliente: getRadio(),
-        p_nomerazao: getText("txt_razaosocial"),
-        p_cnpjcpf: getText("txt_cnpj_cpf"),
-        p_cep: getText("txt_cep"),
-        p_endereco: getText("txt_endereco"),
-        p_bairro: getText("txt_bairro"),
-        p_cidade: getText("txt_cidade"),
-        p_estado: getText("txt_estado"),
-        p_numero: getText("txt_numero"),
+        p_nomerazao: nomerazao,
+        p_cnpjcpf: cpfcnpj,
+        p_cep: cep,
+        p_endereco: endereco,
+        p_bairro: bairro,
+        p_cidade: cidade,
+        p_estado: estado,
+        p_numero: numero,
+        p_lucro: lucro,
       };
 
       const response = await fetch(`/setMeusDados`, {
@@ -161,7 +192,6 @@ async function setMeusDados() {
         text: `Ocorreu um erro ao processar requisição ${err}`,
       });
     }
-  }
 }
 
 async function fillBanks() {

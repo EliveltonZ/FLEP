@@ -22,6 +22,16 @@ async function getCategoriasAmbiente() {
 }
 
 window.setCategoriaAmbiente = async function () {
+  const category = getText("txt_categoria");
+  if (!category) {
+    Swal.fire({
+      icon: "warning",
+      title: "ATENÇÃO",
+      text: "Digite a categoria desejada !!",
+    });
+    return;
+  }
+
   const result = await Swal.fire({
     icon: "question",
     title: "Nova Categoria",
@@ -35,7 +45,7 @@ window.setCategoriaAmbiente = async function () {
     try {
       const data = {
         p_id_marcenaria: await getCookie("id"),
-        p_categoria: getText("txt_categoria").toUpperCase(),
+        p_categoria: category.toUpperCase(),
       };
 
       const response = await fetch(`./setCategoriasAmbientes`, {
@@ -49,6 +59,7 @@ window.setCategoriaAmbiente = async function () {
         title: "SUCESSO",
         text: "Categoria inserida com Sucesso !!!",
       });
+      getCategoriasAmbiente();
     } catch {
       Swal.fire({
         icon: "error",

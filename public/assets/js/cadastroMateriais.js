@@ -54,6 +54,18 @@ async function fillTableCategorias() {
 }
 
 window.setCategoria = async function () {
+  const idCategoria = getText("cod_categoria");
+  const categoria = getText("desc_categoria");
+
+  if (!idCategoria || !categoria) {
+    Swal.fire({
+      icon: "warning",
+      title: "Atenção",
+      text: "Preencha os campos em branco",
+    });
+    return;
+  }
+
   const result = await Swal.fire({
     icon: "question",
     text: "Deseja inserir nova Categoria ?",
@@ -63,8 +75,6 @@ window.setCategoria = async function () {
   });
 
   if (result.isConfirmed) {
-    const idCategoria = getText("cod_categoria");
-    const categoria = getText("desc_categoria");
     const data = {
       p_id_marcenaria: await getCookie("id"),
       p_id_categoria: idCategoria,
@@ -95,6 +105,21 @@ window.setCategoria = async function () {
 };
 
 window.setMaterais = async function () {
+  const descricao = getText("desc_material");
+  const unidade = getText("unid_material");
+  const preco = getText("preco_material");
+  const categoria = getText("cat_material");
+  const codigo = getText("cod_material");
+
+  if (!descricao || !unidade || !preco || !categoria || !codigo) {
+    Swal.fire({
+      icon: "warning",
+      title: "Atenção",
+      text: "Todos os campos devem ser preenchidos antes de inserir!",
+    });
+    return;
+  }
+
   const result = await Swal.fire({
     icon: "question",
     text: "Deseja inserir o novo material ?",
@@ -106,13 +131,13 @@ window.setMaterais = async function () {
   if (result.isConfirmed) {
     const data = {
       p_id_marcenaria: await getCookie("id"),
-      p_descricao: getText("desc_material"),
-      p_unidade: getText("unid_material"),
-      p_preco: getText("preco_material"),
-      p_id_categoria: getText("cat_material"),
-      p_id_material: getText("cod_material"),
+      p_descricao: descricao,
+      p_unidade: unidade,
+      p_preco: preco,
+      p_id_categoria: categoria,
+      p_id_material: codigo,
     };
-    // console.log(data);
+
     const response = await fetch("/setMateriais", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -120,11 +145,11 @@ window.setMaterais = async function () {
     });
 
     if (!response.ok) {
-      const errText = response.text();
+      const errText = await response.text();
       Swal.fire({
         icon: "error",
         title: "ERRO",
-        text: "Não foi possivel inserir Material" + errText,
+        text: "Não foi possível inserir Material: " + errText,
       });
     } else {
       Swal.fire({
@@ -143,6 +168,7 @@ async function optionCategorias() {
 
   const data = await response.json();
   const select = document.getElementById("cat_material");
+  select.innerHTML = `<option value="">Selecione a categoria</option>`;
 
   data.forEach((item) => {
     const option = document.createElement("option");

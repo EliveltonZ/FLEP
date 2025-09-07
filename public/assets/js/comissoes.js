@@ -33,15 +33,21 @@ async function fillTableComissoes() {
 }
 
 async function setComissoes() {
-  const data = {
-    p_id_marcenaria: await getCookie("id"),
-    p_descricao: getText("txt_descricao"),
-    p_valor: getText("txt_porcentagem"),
-  };
+  const descricao = getText("txt_descricao");
+  const valor = getText("txt_porcentagem");
+  if (!descricao || !valor) {
+    Swal.fire({
+      icon: "warning",
+      title: "ATENÇÃO",
+      text: "Preencha os campos vazios",
+    });
+    return;
+  }
 
   const result = await Swal.fire({
     icon: "question",
-    title: "Deseja inserir Custos ?",
+    title: "Novo",
+    text: "Deseja inserir Comissão ?",
     denyButtonText: "Cancelar",
     confirmButtonText: "Confirmar",
     showDenyButton: true,
@@ -49,6 +55,12 @@ async function setComissoes() {
 
   if (result.isConfirmed) {
     try {
+      const data = {
+        p_id_marcenaria: await getCookie("id"),
+        p_descricao: descricao,
+        p_valor: valor,
+      };
+
       const response = await fetch("/setComissoes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -60,6 +72,8 @@ async function setComissoes() {
         title: "SUCESSO",
         text: "Dados inseridos com sucesso !!!",
       });
+
+      fillTableComissoes();
     } catch (erro) {
       Swal.fire({
         icon: "error",
