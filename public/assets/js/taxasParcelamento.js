@@ -4,7 +4,6 @@ import {
   convertDecimal,
   onmouseover,
   insertButtonCellTable,
-  getCookie,
   addEventToElement,
 } from "./utils.js";
 
@@ -15,10 +14,7 @@ function el(tag, text) {
 }
 
 async function fillTableCredito() {
-  const id = await getCookie("id");
-  const response = await fetch(
-    `getTaxasParcelamentos?p_id_marcenaria=${id}&p_tipo=C`
-  );
+  const response = await fetch(`/getTaxasParcelamentos?p_tipo=C`);
 
   const data = await response.json();
 
@@ -43,10 +39,7 @@ async function fillTableCredito() {
 }
 
 async function fillTableFinanciamento() {
-  const id = await getCookie("id");
-  const response = await fetch(
-    `getTaxasParcelamentos?p_id_marcenaria=${id}&p_tipo=F`
-  );
+  const response = await fetch(`/getTaxasParcelamentos?p_tipo=F`);
 
   const data = await response.json();
 
@@ -89,12 +82,11 @@ window.setTaxa = async function () {
     if (result.isConfirmed) {
       try {
         const data = {
-          p_id_marcenaria: await getCookie("id"),
           p_qtd_parcela: getText("txt_parcela"),
           p_taxa: getText("txt_taxa"),
           p_tipo: getText("txt_tipo"),
         };
-        const response = await fetch(`setTaxasParcelamentos`, {
+        const response = await fetch(`/setTaxasParcelamentos`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
@@ -162,10 +154,8 @@ async function deleteRow(button, tipo) {
     const row = button.closest("tr");
     const firstCell = row.querySelectorAll("td")[0].textContent;
     const secondCell = row.querySelectorAll("td")[1].textContent;
-    const id = await getCookie("id");
 
     const data = {
-      p_id_marcenaria: id,
       p_qtd_parcela: firstCell,
       p_taxa: getValueFloat(secondCell),
       p_tipo: tipo,
@@ -183,7 +173,7 @@ async function deleteRow(button, tipo) {
     Swal.fire({
       icon: "error",
       title: "ERRO",
-      text: "Erro ao remover taxa",
+      text: `Erro ao remover taxa ${err.message}`,
     });
   }
 }

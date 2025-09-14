@@ -10,12 +10,15 @@ const meusDadosController = require("./controller/meusDadosController.js");
 const baseCalculosController = require("./controller/baseCalculosController");
 const cookieController = require("./controller/cookieController");
 const comissoesController = require("./controller/comissoesController");
+const AuthController = require("./controller/authController");
+
 // rotas cookie
 route.get("/getCookie", cookieController.getCookie);
 route.post("/setCookie", cookieController.setCookie);
 
 // rotas index.js
 route.get("/loginDataBase", indexController.loginDataBase);
+route.post("/logout", indexController.logout);
 
 // rotas orcamentos.js
 route.get("/getOrcamentos", orcamentosController.getOrcamentos);
@@ -96,5 +99,9 @@ route.post(
 // rotas comissoes.js
 route.get("/getComissoes", comissoesController.getComissoes);
 route.post("/setComissoes", comissoesController.setComissoes);
+
+// rotas Auth.js
+route.get("/auth/check", AuthController.check); // NOVO
+route.post("auth/logout", AuthController.logout); // opcional
 
 module.exports = route;

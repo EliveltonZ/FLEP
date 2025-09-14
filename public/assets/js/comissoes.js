@@ -1,16 +1,8 @@
-import {
-  getText,
-  setText,
-  getCookie,
-  addEventToElement,
-  formatPercent,
-} from "./utils.js";
+import { getText, setText, addEventToElement, formatPercent } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 
 async function getComissoes() {
-  const response = await fetch(
-    `/getComissoes?p_id_marcenaria=${await getCookie("id")}`
-  );
+  const response = await fetch(`/getComissoes`);
 
   const data = await response.json();
   return data;
@@ -56,7 +48,6 @@ async function setComissoes() {
   if (result.isConfirmed) {
     try {
       const data = {
-        p_id_marcenaria: await getCookie("id"),
         p_descricao: descricao,
         p_valor: valor,
       };

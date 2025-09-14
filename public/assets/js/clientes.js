@@ -84,11 +84,6 @@ function el(tag, text) {
   return node;
 }
 
-// pega cookie id da marcenaria
-async function getShopId() {
-  return getCookie("id");
-}
-
 // trata respostas fetch
 async function toJSONorThrow(res) {
   if (!res.ok) {
@@ -103,8 +98,7 @@ async function toJSONorThrow(res) {
 ================================ */
 
 async function fetchClients() {
-  const shopId = await getShopId();
-  const res = await fetch(`/getClients?p_id_marcenaria=${shopId}`);
+  const res = await fetch(`/getClients`);
   return toJSONorThrow(res);
 }
 
@@ -120,10 +114,7 @@ var idCliente = "";
 
 async function fetchAddresses(clientId) {
   idCliente = clientId;
-  const shopId = await getShopId();
-  const res = await fetch(
-    `/getEnderecos?p_id_marcenaria=${shopId}&p_id_cliente=${clientId}`
-  );
+  const res = await fetch(`/getEnderecos?p_id_cliente=${clientId}`);
   return toJSONorThrow(res);
 }
 
@@ -144,10 +135,7 @@ async function fetchAddress(params) {
 }
 
 async function fetchClientByCpf(cpfOrCnpj) {
-  const shopId = await getShopId();
-  const res = await fetch(
-    `/getClient?p_id_marcenaria=${shopId}&p_cpf_cnpj=${cpfOrCnpj}`
-  );
+  const res = await fetch(`/getClient?p_cpf_cnpj=${cpfOrCnpj}`);
   return toJSONorThrow(res);
 }
 
@@ -360,7 +348,6 @@ export async function validateClientForm(e) {
 
   try {
     const data = {
-      p_id_marcenaria: await getShopId(),
       p_cpf_cnpj: v.cpf,
       p_nome: v.nome,
       p_telefone: v.telefone,
@@ -441,7 +428,6 @@ async function addAddressFromForm() {
   if (!result.isConfirmed) return;
 
   const data = {
-    p_id_marcenaria: await getShopId(),
     p_id_cliente: parseInt(idCliente),
     p_endereco: logradouroEndereco,
     p_cep: cepEndereco,
@@ -537,7 +523,6 @@ async function deleteRow(e) {
   try {
     const data = {
       p_id: firstCellValue,
-      p_id_marcenaria: await getShopId(),
     };
     fetchDelAddress(data);
     tr.remove();

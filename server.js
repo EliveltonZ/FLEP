@@ -13,6 +13,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser("s3cr3t!A9$7@#Uihx82&1Zqwe912hjk*&l"));
 app.use("/", routes);
 
+app.use((req, res, next) => {
+  const id = req.signedCookies?.id || req.cookies?.id;
+  if (!id && req.path !== "/index.html" && req.path !== "/") {
+    return res.redirect("/index.html");
+  }
+  next();
+});
+
 // ⚠️ Middleware de erro 404
 app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, "public", "404.html"));

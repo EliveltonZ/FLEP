@@ -8,8 +8,6 @@ import {
   getInnerHtml,
   getSelectedOptionText,
   addEventToElement,
-  getCookie,
-  setCookie,
   formatCurrency,
   setText,
   formatValueDecimal,
@@ -90,8 +88,7 @@ async function fetchJson(url, options) {
 }
 
 const api = {
-  getOrcamentos: (id) =>
-    fetchJson(`/getOrcamentos?p_marcenaria=${encodeURIComponent(id)}`),
+  getOrcamentos: (id) => fetchJson(`/getOrcamentos`),
 
   setOrcamento: (payload) =>
     fetchJson(`/setOrcamentos`, {
@@ -100,19 +97,10 @@ const api = {
       body: JSON.stringify(payload),
     }),
 
-  getComissoes: () =>
-    fetchJson(
-      `/getComissoes?p_id_marcenaria=${encodeURIComponent(
-        AppState.idMarcenaria
-      )}`
-    ),
+  getComissoes: () => fetchJson(`/getComissoes`),
 
   getAmbientes: (idOrcamento) =>
-    fetchJson(
-      `/getAmbientes?p_id_marcenaria=${encodeURIComponent(
-        AppState.idMarcenaria
-      )}&p_orcamento=${encodeURIComponent(idOrcamento)}`
-    ),
+    fetchJson(`/getAmbientes?p_orcamento=${encodeURIComponent(idOrcamento)}`),
 
   setAmbiente: (payload) =>
     fetchJson(`/setAmbientes`, {
@@ -126,32 +114,16 @@ const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        p_id_marcenaria: AppState.idMarcenaria,
         p_id_orcamento: AppState.orcamentoAtual,
         p_id_ambiente: idAmbiente,
       }),
     }),
 
-  getMateriais: () =>
-    fetchJson(
-      `/fillTableMateriais?p_marcenaria=${encodeURIComponent(
-        AppState.idMarcenaria
-      )}`
-    ),
+  getMateriais: () => fetchJson(`/fillTableMateriais`),
 
-  getClientes: () =>
-    fetchJson(
-      `/fillTableClients?p_id_marcenaria=${encodeURIComponent(
-        AppState.idMarcenaria
-      )}`
-    ),
+  getClientes: () => fetchJson(`/fillTableClients`),
 
-  getCategoriasAmbientes: () =>
-    fetchJson(
-      `/getCategoriasAmbientes?p_id_marcenaria=${encodeURIComponent(
-        AppState.idMarcenaria
-      )}`
-    ),
+  getCategoriasAmbientes: () => fetchJson(`/getCategoriasAmbientes`),
 
   setMateriaisAmbientes: (payload) =>
     fetchJson(`/setMateriaisAmbientes`, {
@@ -162,9 +134,9 @@ const api = {
 
   getCustos: () =>
     fetchJson(
-      `/fillTableCustos?p_id_marcenaria=${encodeURIComponent(
-        AppState.idMarcenaria
-      )}&p_id_orcamento=${encodeURIComponent(AppState.orcamentoAtual)}`
+      `/fillTableCustos?p_id_orcamento=${encodeURIComponent(
+        AppState.orcamentoAtual
+      )}`
     ),
 
   setCusto: (payload) =>
@@ -176,18 +148,10 @@ const api = {
 
   // IMPORTANTE: se o endpoint correto for /totalOrcamentos (com "r"), troque aqui.
   getValoresOrcamento: (idOrc) =>
-    fetchJson(
-      `/totalOcamentos?p_id_marcenaria=${encodeURIComponent(
-        AppState.idMarcenaria
-      )}&p_id_orcamento=${encodeURIComponent(idOrc)}`
-    ),
+    fetchJson(`/totalOcamentos?p_id_orcamento=${encodeURIComponent(idOrc)}`),
 
   getTaxasParcelamentos: (tipo) =>
-    fetchJson(
-      `getTaxasParcelamentos?p_id_marcenaria=${encodeURIComponent(
-        AppState.idMarcenaria
-      )}&p_tipo=${encodeURIComponent(tipo)}`
-    ),
+    fetchJson(`/getTaxasParcelamentos?p_tipo=${encodeURIComponent(tipo)}`),
 
   delMaterialAmbiente: (payload) =>
     fetchJson(`/delMaterialAmbiente`, {
@@ -200,12 +164,13 @@ const api = {
 function createButton(_class) {
   return `
     <td style="text-align: center" >
-      <button class="btn bt-color ${_class}" type="button" style="padding: 0px;height: 24px;width: 20px;">
+      <button class="btn bt-color ${_class}" type="button" style="padding: 0;height: 17px;font-size: 10px;width: 30px;">
         <i class="icon ion-social-usd"></i>
       </button>
     </td>
   `;
 }
+
 /* =========================
  * Renderizadores puros
  * ========================= */
@@ -335,6 +300,7 @@ export function formatCPF(cpf = "") {
   const D = cpf.slice(-2);
   return `${A}.${B}.${C}-${D}`;
 }
+
 function toNumber(value) {
   if (value == null) return 0;
   return parseFloat(String(value).replace(",", ".")) || 0;
@@ -550,7 +516,6 @@ async function onConfirmGerarOrcamento() {
 
   try {
     await api.setOrcamento({
-      p_id_marcenaria: AppState.idMarcenaria,
       p_id_cliente: getInnerHtml("lb_id"),
     });
     await loadOrcamentos();
@@ -569,6 +534,17 @@ async function onConfirmGerarOrcamento() {
 }
 
 async function onConfirmSetAmbiente() {
+  const categoria = getText("txt_tipoambiente");
+  const descricao = getText("txt_ambiente");
+
+  if (!categoria || !descricao) {
+    Swal.fire({
+      icon: "warning",
+      title: "Atenção",
+      text: "Preencha os campos obrigatorios",
+    });
+    return;
+  }
   const result = await Swal.fire({
     icon: "question",
     text: "Deseja inserir novo ambiente?",
@@ -580,10 +556,9 @@ async function onConfirmSetAmbiente() {
 
   try {
     await api.setAmbiente({
-      p_id_marcenaria: AppState.idMarcenaria,
       p_id_orcamento: AppState.orcamentoAtual,
-      p_id_categoria: getText("txt_tipoambiente"),
-      p_descricao: getText("txt_ambiente"),
+      p_id_categoria: categoria,
+      p_descricao: descricao,
     });
     await loadAmbientes(AppState.orcamentoAtual);
     Swal.fire({
@@ -621,7 +596,6 @@ async function onConfirmInserirMaterialAmbiente() {
 
   try {
     await api.setMateriaisAmbientes({
-      p_id_marcenaria: AppState.idMarcenaria,
       p_id_orcamento: AppState.orcamentoAtual,
       p_id_ambiente: AppState.idAmbiente,
       p_id_material: getText("txt_codigo"),
@@ -655,7 +629,6 @@ async function onConfirmInserirCusto() {
 
   try {
     await api.setCusto({
-      p_id_marcenaria: AppState.idMarcenaria,
       p_id_orcamento: AppState.orcamentoAtual,
       p_descricao: getText("txt_descricao_c"),
       p_quantidade: getText("txt_qtd_c"),
@@ -678,7 +651,6 @@ async function delRow(button) {
   if (!bt) return;
 
   const payload = {
-    p_id_marcenaria: AppState.idMarcenaria,
     p_id_orcamento: AppState.orcamentoAtual,
     p_id_ambiente: AppState.idAmbiente,
     p_id_material: idItem,
@@ -727,7 +699,7 @@ async function onChangeEntrada() {
  * ========================= */
 async function loadOrcamentos() {
   try {
-    const data = await api.getOrcamentos(AppState.idMarcenaria);
+    const data = await api.getOrcamentos();
     AppState.cache.orcamentos = data;
     renderOrcamentosTable(data);
   } catch {
@@ -797,7 +769,7 @@ async function loadCategoriasAmbientes() {
   try {
     const data = await api.getCategoriasAmbientes();
     const select = q("#txt_tipoambiente");
-    select.innerHTML = "";
+    select.innerHTML = `<option value="">Selecione o Tipo</option>`;
     data.forEach((item) => {
       const option = el("option", {
         value: item.p_id_categoria,
@@ -829,7 +801,13 @@ async function loadCustos() {
 
 async function loadTaxasParcelamento(tipo) {
   try {
-    const data = await api.getTaxasParcelamentos(tipo);
+    var data = [];
+    if (tipo == "D") {
+      data = [{ p_qtd_parcela: 1, p_taxa: 0 }];
+    } else {
+      data = await api.getTaxasParcelamentos(tipo);
+    }
+
     const select = q("#txt_tipo");
     select.innerHTML = "";
     data.forEach((item) => {
@@ -840,18 +818,12 @@ async function loadTaxasParcelamento(tipo) {
       select.appendChild(opt);
     });
     await onChangeTipoParcelamento();
-  } catch {
-    Swal.fire({
-      icon: "error",
-      title: "ERRO",
-      text: "Não foi possível carregar taxas.",
-    });
-  }
+  } catch (err) {}
 }
 
 async function loadAmbientesValores(idOrc) {
   try {
-    if (!AppState.idMarcenaria || !idOrc) {
+    if (!idOrc) {
       console.warn("Guards: idMarcenaria/orcamentoAtual ausentes", AppState);
       Swal.fire({
         icon: "warning",
@@ -914,41 +886,37 @@ function bindParcelamentoRadios() {
   });
 }
 
-async function teste(e) {
+async function getValuesOrder(e) {
   const tr = e.target.closest("tr");
   const idOrc = tr.cells[0].textContent.trim();
   await loadAmbientesValores(idOrc);
   const trigger = document.querySelector('a[href="#tab-5"]');
   if (trigger) bootstrap.Tab.getOrCreateInstance(trigger).show();
+  atualizarTotaisUI();
 }
 
 /* =========================
  * Inicialização
  * ========================= */
 document.addEventListener("DOMContentLoaded", async () => {
-  try {
-    AppState.idMarcenaria = await getCookie("id");
-  } catch {
-    Swal.fire({
-      icon: "error",
-      title: "ERRO",
-      text: "Usuário sem sessão válida.",
-    });
-    return;
-  }
-
   // reset de seleção
   localStorage.removeItem("orcamento");
   localStorage.removeItem("ambiente");
 
   // carregamento inicial
-  await Promise.all([
-    loadComissoes(),
-    loadOrcamentos(),
-    loadCategoriasAmbientes(),
-    loadClientes(),
-    loadMateriais(),
-  ]);
+  AppState.idMarcenaria = true;
+  if (AppState.idMarcenaria) {
+    await Promise.all([
+      loadComissoes(),
+      loadOrcamentos(),
+      loadCategoriasAmbientes(),
+      loadClientes(),
+      loadMateriais(),
+      bindParcelamentoRadios(),
+    ]);
+  } else {
+    location.href = "/";
+  }
 
   // efeitos e filtros
   onmouseover("table");
@@ -964,7 +932,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   addEventToElement("#table-ambientes", "dblclick", onRowDblClickAmbientes);
   addEventToElement("#table_materiais tbody", "click", onClickMaterialLinha);
   addEventToElement("#table-clientes", "click", onClickCliente);
-  addEventToElement(".order", "click", teste);
+  addEventToElement(".order", "click", getValuesOrder);
 
   addEventToElement("#bt_new_orcamento", "click", onConfirmGerarOrcamento);
   addEventToElement("#bt_new_ambiente", "click", onConfirmSetAmbiente);
@@ -979,6 +947,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   addEventToElement("#txt_entrada", "input", onChangeEntrada);
 
   // radios
-  bindParcelamentoRadios();
   renderComissoes();
 });

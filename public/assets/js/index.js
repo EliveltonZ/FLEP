@@ -5,43 +5,31 @@ window.loginDataBase = async function () {
   const email = getText("txt_email");
   const senha = getText("txt_senha");
 
-  const response = await fetch(
-    `loginDataBase?p_email=${email}&p_senha=${senha}`
-  );
+  try {
+    const response = await fetch(
+      `loginDataBase?p_email=${encodeURIComponent(
+        email
+      )}&p_senha=${encodeURIComponent(senha)}`
+      // se sua API estiver em OUTRO domínio/subdomínio, use:
+      // , { credentials: 'include' }
+    );
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    Swal.fire({
-      icon: "error",
-      text: "nao foi possivel conectar",
-    });
-  } else {
-    try {
-      if (data && data.length > 0) {
-        if (data[0].p_ativo) {
-          localStorage.setItem("id", data[0].p_id);
-          await setIdEnterprise(data[0].p_id);
-          window.location.href = "/orcamentos.html";
-        } else {
-          Swal.fire({
-            icon: "warning",
-            title: "Atenção",
-            text: "Conta inativa.",
-          });
-        }
-      } else {
-        Swal.fire({
-          icon: "warning",
-          text: "Usuário ou senha inválidos.",
-        });
-      }
-    } catch (e) {
-      Swal.fire({
-        icon: "error",
-        text: "Erro ao processar os dados retornados.",
-      });
+    if (!response.ok || !data?.ok) {
+      return Swal.fire({ icon: "error", text: "Usuário ou senha inválidos." });
     }
+
+    // compatibilidade com o restante do app
+    const userId = data.user?.id;
+    if (userId) {
+      localStorage.setItem("id", userId);
+      await setIdEnterprise(userId); // mantém seu fluxo atual
+    }
+
+    window.location.href = "/orcamentos.html";
+  } catch (e) {
+    Swal.fire({ icon: "error", text: "Não foi possível conectar." });
   }
 };
 

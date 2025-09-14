@@ -274,42 +274,6 @@ export class CepUtils {
    Cookies (camada de serviço)
 ============================ */
 export class API {
-  static async getCookie(paramKey) {
-    try {
-      const response = await fetch(`/getCookie`, { credentials: "include" });
-      if (!response.ok)
-        throw new Error(`Erro ao buscar cookie: ${response.status}`);
-      const data = await response.json();
-      if (!(paramKey in data)) {
-        console.warn(`Parâmetro "${paramKey}" não encontrado no cookie.`);
-        return null;
-      }
-      return data[paramKey];
-    } catch (err) {
-      console.error("Erro em CookieService.getCookie:", err);
-      return null;
-    }
-  }
-
-  static async setCookie(value) {
-    try {
-      const response = await fetch(`/setCookie`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(value),
-      });
-      if (!response.ok) {
-        const erro = await response.json().catch(() => ({}));
-        throw new Error(erro.mensagem || "Erro ao definir cookie.");
-      }
-      return true;
-    } catch (err) {
-      console.error("Erro em CookieService.setCookie:", err);
-      return false;
-    }
-  }
-
   static async getCep(cep) {
     const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
     return res.json();
@@ -375,6 +339,19 @@ function validarCNPJ(cnpj) {
   resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
   return resultado === parseInt(digitos.charAt(1));
 }
+
+// public/js/auth-guard.js
+export async function requireAuth() {
+  try {
+    const res = await fetch("/auth/check", { credentials: "include" });
+    if (res.status === 401) window.location.href = "/index.html";
+    console.log("funcionando");
+  } catch {
+    window.location.href = "/index.html";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", requireAuth);
 
 /* =========================================================
    ====== SHIMS DE COMPATIBILIDADE (exports antigos) =======

@@ -7,6 +7,7 @@ function setCookie(req, res) {
     httpOnly: true, // O cookie só é acessível pelo servidor
     signed: true, // Assinado com a chave secreta
     maxAge: 1000 * 60 * 60 * 24, // 1 dia
+    // maxAge: 1000 * 5, // 1 dia
   });
 
   res.status(200).json({ mensagem: "Dados salvos no cookie com sucesso" });

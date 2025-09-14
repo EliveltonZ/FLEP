@@ -105,7 +105,7 @@ function getRadio() {
 }
 
 async function getDados() {
-  const response = await fetch(`/getMeusDados?p_id=${await getCookie("id")}`);
+  const response = await fetch(`/getMeusDados`);
 
   const data = await response.json();
   setRadio(data[0].p_tipocliente);
@@ -162,7 +162,6 @@ async function setMeusDados() {
   if (result.isConfirmed)
     try {
       const data = {
-        p_id: await getCookie("id"),
         p_tipocliente: getRadio(),
         p_nomerazao: nomerazao,
         p_cnpjcpf: cpfcnpj,
@@ -195,9 +194,7 @@ async function setMeusDados() {
 }
 
 async function fillBanks() {
-  const response = await fetch(
-    `/getBancos?p_id_marcenaria=${await getCookie("id")}`
-  );
+  const response = await fetch(`/getBancos`);
 
   const data = await response.json();
   const tbody = document.getElementById("tbody-bank");
@@ -231,7 +228,6 @@ async function setBanco() {
 
   if (result.isConfirmed) {
     const data = {
-      p_id_marcenaria: await getCookie("id"),
       p_banco: getText("txt_banco"),
       p_tipo_conta: getText("txt_tipoconta"),
       p_numero: getText("txt_agencia"),
@@ -275,10 +271,9 @@ async function delBanco(button) {
   if (result.isConfirmed) {
     try {
       const data = {
-        p_id_marcenaria: await getCookie("id"),
         p_banco: getValue(bt),
       };
-      const response = await fetch(`./setDelBanco`, {
+      const response = await fetch(`/setDelBanco`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

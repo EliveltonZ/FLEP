@@ -3,9 +3,7 @@ import { enableTableFilterSort } from "./filtertable.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 
 async function fillTableMateriais() {
-  const response = await fetch(
-    `/fillTableMateriais?p_marcenaria=${await getCookie("id")}`
-  );
+  const response = await fetch(`/fillTableMateriais`);
 
   if (!response.ok) {
     Swal.fire({
@@ -30,13 +28,11 @@ async function fillTableMateriais() {
 }
 
 async function fillTableCategorias() {
-  const response = await fetch(
-    `/fillTableCategorias?p_marcenaria=${await getCookie("id")}`
-  );
+  const response = await fetch(`/fillTableCategorias`);
   if (!response.ok) {
     Swal.fire({
       icon: "error",
-      message: "nao foi possivel carregar dados",
+      text: "nao foi possivel carregar dados",
     });
   } else {
     const data = await response.json();
@@ -76,9 +72,8 @@ window.setCategoria = async function () {
 
   if (result.isConfirmed) {
     const data = {
-      p_id_marcenaria: await getCookie("id"),
       p_id_categoria: idCategoria,
-      p_categoria: categoria,
+      p_categoria: categoria.toUpperCase(),
     };
 
     const response = await fetch("/setCategoria", {
@@ -95,6 +90,8 @@ window.setCategoria = async function () {
       });
       return;
     } else {
+      fillTableCategorias();
+      optionCategorias();
       Swal.fire({
         icon: "success",
         title: "Sucesso",
@@ -130,7 +127,6 @@ window.setMaterais = async function () {
 
   if (result.isConfirmed) {
     const data = {
-      p_id_marcenaria: await getCookie("id"),
       p_descricao: descricao,
       p_unidade: unidade,
       p_preco: preco,
@@ -152,6 +148,7 @@ window.setMaterais = async function () {
         text: "Não foi possível inserir Material: " + errText,
       });
     } else {
+      fillTableMateriais();
       Swal.fire({
         icon: "success",
         title: "Sucesso",
@@ -162,9 +159,7 @@ window.setMaterais = async function () {
 };
 
 async function optionCategorias() {
-  const response = await fetch(
-    `/fillTableCategorias?p_marcenaria=${await getCookie("id")}`
-  );
+  const response = await fetch(`/fillTableCategorias`);
 
   const data = await response.json();
   const select = document.getElementById("cat_material");

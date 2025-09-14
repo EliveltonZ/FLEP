@@ -13,9 +13,7 @@ import {
 import Swal from "./sweetalert2.esm.all.min.js";
 
 async function fillDespesas() {
-  const response = await fetch(
-    `/getDespesas?p_id_marcenaria=${await getCookie("id")}`
-  );
+  const response = await fetch(`/getDespesas`);
 
   if (!response.ok) {
     Swal.fire({
@@ -75,7 +73,6 @@ window.setDespesas = async function () {
   if (result.isConfirmed) {
     try {
       const data = {
-        p_id_marcenaria: await getCookie("id"),
         p_imposto: formatValueDecimal(getText("txt_imposto")),
         p_total_despesa: formatValueDecimal(getText("txt_despesa")),
         p_dias_produtivos: getText("txt_dias_produtivos"),

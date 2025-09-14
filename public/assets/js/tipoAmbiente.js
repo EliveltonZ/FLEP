@@ -2,15 +2,12 @@ import { enableEnterAsTab, getText, getCookie } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 
 async function getCategoriasAmbiente() {
-  const response = await fetch(
-    `/getCategoriasAmbientes?p_id_marcenaria=${await getCookie("id")}`
-  );
+  const response = await fetch(`/getCategoriasAmbientes`);
 
   const data = await response.json();
 
-  console.log(data);
-
   const tbody = document.getElementById("tbody-ambiente");
+  tbody.innerHTML = "";
   data.forEach((element) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -44,11 +41,10 @@ window.setCategoriaAmbiente = async function () {
   if (result.isConfirmed) {
     try {
       const data = {
-        p_id_marcenaria: await getCookie("id"),
         p_categoria: category.toUpperCase(),
       };
 
-      const response = await fetch(`./setCategoriasAmbientes`, {
+      const response = await fetch(`/setCategoriasAmbientes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
