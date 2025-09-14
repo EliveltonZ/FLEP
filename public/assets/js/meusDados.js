@@ -1,135 +1,169 @@
+// app-meusdados.js (padronizado com API.apiFetch + fetchJson)
 import {
-  getText,
-  setText,
-  formatCEP,
-  setInnerHtml,
-  insertButtonCellTable,
-  getInnerHtml,
-  addEventToElement,
-  getCookie,
-  setChecked,
-  getChecked,
+  DomUtils,
+  CepUtils,
+  TableUtils,
+  EventUtils,
+  API, // << usar API.apiFetch (401 -> SweetAlert + redirect)
 } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
+import { clearTableBody } from "./dom.js";
 
-import { clearTableBody, createRow } from "./dom.js";
-
-function el(tag, text) {
+/* =========================
+ * Helpers
+ * ========================= */
+const q = (sel, root = document) => root.querySelector(sel);
+const el = (tag, text) => {
   const node = document.createElement(tag);
-  if (text != undefined) node.textContent = text;
+  if (text != null) node.textContent = text;
   return node;
-}
-
-window.findCep = async function () {
-  const cep = getText("txt_cep");
-  const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-  const endereco = await response.json();
-  setText("txt_endereco", endereco.logradouro);
-  setText("txt_bairro", endereco.bairro);
-  setText("txt_cidade", endereco.localidade);
-  setText("txt_estado", endereco.uf);
 };
 
+// Wrapper padrão: usa API.apiFetch e já trata JSON / erro
+async function fetchJson(url, options) {
+  const res = await API.apiFetch(url, options);
+  const ct = res.headers.get("content-type") || "";
+  const body = ct.includes("application/json")
+    ? await res.json()
+    : await res.text();
+  if (!res.ok) {
+    const msg =
+      (body && (body.error || body.message)) ||
+      res.statusText ||
+      "Erro na requisição";
+    throw new Error(msg);
+  }
+  return body;
+}
+
+/* =========================
+ * CEP (externo – não precisa JWT)
+ * ========================= */
+async function findCep() {
+  try {
+    const cep = DomUtils.getText("txt_cep");
+    const endereco = await API.getCep(cep);
+    if (endereco?.erro) throw new Error("CEP não encontrado.");
+    DomUtils.setText("txt_endereco", endereco.logradouro || "");
+    DomUtils.setText("txt_bairro", endereco.bairro || "");
+    DomUtils.setText("txt_cidade", endereco.localidade || "");
+    DomUtils.setText("txt_estado", endereco.uf || "");
+  } catch (e) {
+    Swal.fire({
+      icon: "warning",
+      title: "Atenção",
+      text: e.message || "CEP inválido.",
+    });
+  }
+}
+
+/* =========================
+ * UI
+ * ========================= */
 function fillStates() {
   const estados = [
-    "AC", // Acre
-    "AL", // Alagoas
-    "AP", // Amapá
-    "AM", // Amazonas
-    "BA", // Bahia
-    "CE", // Ceará
-    "DF", // Distrito Federal
-    "ES", // Espírito Santo
-    "GO", // Goiás
-    "MA", // Maranhão
-    "MT", // Mato Grosso
-    "MS", // Mato Grosso do Sul
-    "MG", // Minas Gerais
-    "PA", // Pará
-    "PB", // Paraíba
-    "PR", // Paraná
-    "PE", // Pernambuco
-    "PI", // Piauí
-    "RJ", // Rio de Janeiro
-    "RN", // Rio Grande do Norte
-    "RS", // Rio Grande do Sul
-    "RO", // Rondônia
-    "RR", // Roraima
-    "SC", // Santa Catarina
-    "SP", // São Paulo
-    "SE", // Sergipe
-    "TO", // Tocantins
+    "AC",
+    "AL",
+    "AP",
+    "AM",
+    "BA",
+    "CE",
+    "DF",
+    "ES",
+    "GO",
+    "MA",
+    "MT",
+    "MS",
+    "MG",
+    "PA",
+    "PB",
+    "PR",
+    "PE",
+    "PI",
+    "RJ",
+    "RN",
+    "RS",
+    "RO",
+    "RR",
+    "SC",
+    "SP",
+    "SE",
+    "TO",
   ];
-  const select = document.getElementById("txt_estado");
+  const select = q("#txt_estado");
   select.innerHTML = `<option value="-">-</option>`;
-  estados.forEach((item) => {
+  estados.forEach((uf) => {
     const option = document.createElement("option");
-    option.text = item;
-    option.value = item;
+    option.value = uf;
+    option.text = uf;
     select.appendChild(option);
   });
 }
 
 function checkRadios() {
   const radios = document.querySelectorAll('input[name="tipo"]');
-
   radios.forEach((radio) => {
     radio.addEventListener("change", () => {
-      if (radio.checked) {
-        if (radio.id == "radio-pj") {
-          setInnerHtml("lb_nome", "Razão Social: *");
-          setInnerHtml("lb_documento", "CNPJ: *");
-        } else {
-          setInnerHtml("lb_nome", "Nome: *");
-          setInnerHtml("lb_documento", "CPF: *");
-        }
+      if (!radio.checked) return;
+      if (radio.id === "radio-pj") {
+        DomUtils.setInnerHtml("lb_nome", "Razão Social: *");
+        DomUtils.setInnerHtml("lb_documento", "CNPJ: *");
+      } else {
+        DomUtils.setInnerHtml("lb_nome", "Nome: *");
+        DomUtils.setInnerHtml("lb_documento", "CPF: *");
       }
     });
   });
 }
 
 function setRadio(value) {
-  if (value == "PF") {
-    setChecked("radio-pf", true);
-  } else {
-    setChecked("radio-pj", true);
-  }
+  value === "PF"
+    ? DomUtils.setChecked("radio-pf", true)
+    : DomUtils.setChecked("radio-pj", true);
 }
 
 function getRadio() {
-  if (getChecked("radio-pf") == true) {
-    return "PF";
-  } else {
-    return "PJ";
+  return DomUtils.getChecked("radio-pf") ? "PF" : "PJ";
+}
+
+/* =========================
+ * Dados (perfil + bancos)
+ * ========================= */
+async function getDados() {
+  try {
+    const data = await fetchJson(`/getMeusDados`);
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return;
+
+    setRadio(row.p_tipocliente || "PJ");
+    DomUtils.setText("txt_razaosocial", row.p_nomerazao || "");
+    DomUtils.setText("txt_cnpj_cpf", row.p_cnpjcpf || "");
+    DomUtils.setText("txt_cep", row.p_cep || "");
+    DomUtils.setText("txt_endereco", row.p_endereco || "");
+    DomUtils.setText("txt_bairro", row.p_bairro || "");
+    DomUtils.setText("txt_cidade", row.p_cidade || "");
+    DomUtils.setText("txt_estado", row.p_estado || "-");
+    DomUtils.setText("txt_numero", row.p_numero || "");
+    DomUtils.setText("txt_lucro", row.p_lucro ?? 0);
+  } catch (e) {
+    Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: "Não foi possível carregar seus dados.",
+    });
   }
 }
 
-async function getDados() {
-  const response = await fetch(`/getMeusDados`);
-
-  const data = await response.json();
-  setRadio(data[0].p_tipocliente);
-  setText("txt_razaosocial", data[0].p_nomerazao);
-  setText("txt_cnpj_cpf", data[0].p_cnpjcpf);
-  setText("txt_cep", data[0].p_cep);
-  setText("txt_endereco", data[0].p_endereco);
-  setText("txt_bairro", data[0].p_bairro);
-  setText("txt_cidade", data[0].p_cidade);
-  setText("txt_estado", data[0].p_estado);
-  setText("txt_numero", data[0].p_numero);
-  setText("txt_lucro", data[0].p_lucro);
-}
-
 async function setMeusDados() {
-  const nomerazao = getText("txt_razaosocial");
-  const cpfcnpj = getText("txt_cnpj_cpf");
-  const cep = getText("txt_cep");
-  const endereco = getText("txt_endereco");
-  const bairro = getText("txt_bairro");
-  const cidade = getText("txt_cidade");
-  const estado = getText("txt_estado");
-  const numero = getText("txt_numero");
-  const lucro = getText("txt_lucro");
+  const nomerazao = DomUtils.getText("txt_razaosocial");
+  const cpfcnpj = DomUtils.getText("txt_cnpj_cpf");
+  const cep = DomUtils.getText("txt_cep");
+  const endereco = DomUtils.getText("txt_endereco");
+  const bairro = DomUtils.getText("txt_bairro");
+  const cidade = DomUtils.getText("txt_cidade");
+  const estado = DomUtils.getText("txt_estado");
+  const numero = DomUtils.getText("txt_numero");
+  const lucro = DomUtils.getText("txt_lucro");
 
   if (
     !nomerazao ||
@@ -144,8 +178,8 @@ async function setMeusDados() {
   ) {
     Swal.fire({
       icon: "warning",
-      title: "ATENÇÃO",
-      text: "Preencha os campos Obrigatórios",
+      title: "Atenção",
+      text: "Preencha os campos obrigatórios.",
     });
     return;
   }
@@ -153,15 +187,18 @@ async function setMeusDados() {
   const result = await Swal.fire({
     icon: "question",
     title: "Salvar",
-    text: "Deseja salvar Alterações ?",
+    text: "Deseja salvar alterações?",
     showDenyButton: true,
     denyButtonText: "Cancelar",
     confirmButtonText: "Confirmar",
   });
+  if (!result.isConfirmed) return;
 
-  if (result.isConfirmed)
-    try {
-      const data = {
+  try {
+    await fetchJson(`/setMeusDados`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         p_tipocliente: getRadio(),
         p_nomerazao: nomerazao,
         p_cnpjcpf: cpfcnpj,
@@ -172,147 +209,139 @@ async function setMeusDados() {
         p_estado: estado,
         p_numero: numero,
         p_lucro: lucro,
-      };
-
-      const response = await fetch(`/setMeusDados`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      Swal.fire({
-        icon: "success",
-        title: "SUCESSO",
-        text: "Alterações salvas com Sucesso !!!",
-      });
-    } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "ERRO",
-        text: `Ocorreu um erro ao processar requisição ${err}`,
-      });
-    }
+      }),
+    });
+    Swal.fire({
+      icon: "success",
+      title: "Sucesso",
+      text: "Alterações salvas com sucesso!",
+    });
+  } catch (err) {
+    Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: `Erro ao salvar: ${err.message}`,
+    });
+  }
 }
 
 async function fillBanks() {
-  const response = await fetch(`/getBancos`);
-
-  const data = await response.json();
-  const tbody = document.getElementById("tbody-bank");
-  clearTableBody("#tbody-bank");
-  data.forEach((item) => {
-    const tr = document.createElement("tr");
-    tr.append(
-      el("td", item.p_banco),
-      el("td", item.p_agencia),
-      el("td", item.p_numero),
-      el("td", item.p_tipo_conta),
-      el("td", item.p_pix)
-    );
-    const td = document.createElement("td");
-    td.innerHTML = insertButtonCellTable("delBank");
-    tr.append(td);
-    td.style.textAlign = "center";
-    tbody.appendChild(tr);
-  });
+  try {
+    const data = await fetchJson(`/getBancos`);
+    const tbody = q("#tbody-bank");
+    clearTableBody("#tbody-bank");
+    (Array.isArray(data) ? data : []).forEach((item) => {
+      const tr = document.createElement("tr");
+      tr.append(
+        el("td", item.p_banco),
+        el("td", item.p_agencia),
+        el("td", item.p_numero),
+        el("td", item.p_tipo_conta),
+        el("td", item.p_pix)
+      );
+      const td = document.createElement("td");
+      td.innerHTML = TableUtils.insertDeleteButtonCell("delBank");
+      td.style.textAlign = "center";
+      tr.append(td);
+      tbody.appendChild(tr);
+    });
+  } catch {
+    Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: "Não foi possível carregar bancos.",
+    });
+  }
 }
 
 async function setBanco() {
   const result = await Swal.fire({
     icon: "question",
     title: "Inserir",
-    text: "Deseja salvar banco ?",
+    text: "Deseja salvar banco?",
     showDenyButton: true,
     confirmButtonText: "Confirmar",
-    denyButtonText: "Canncelar",
+    denyButtonText: "Cancelar",
   });
+  if (!result.isConfirmed) return;
 
-  if (result.isConfirmed) {
-    const data = {
-      p_banco: getText("txt_banco"),
-      p_tipo_conta: getText("txt_tipoconta"),
-      p_numero: getText("txt_agencia"),
-      p_agencia: getText("txt_numconta"),
-      p_pix: getText("txt_pix"),
-    };
-
-    const response = await fetch(`/setBancos`, {
+  try {
+    await fetchJson(`/setBancos`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        p_banco: q("#txt_banco")?.value || "",
+        p_tipo_conta: q("#txt_tipoconta")?.value || "",
+        p_numero: q("#txt_agencia")?.value || "",
+        p_agencia: q("#txt_numconta")?.value || "",
+        p_pix: q("#txt_pix")?.value || "",
+      }),
     });
-
-    if (!response.ok) {
-      Swal.fire({
-        icon: "error",
-        title: "ERRO",
-        text: "Não foi possivel salvar banco",
-      });
-    }
     Swal.fire({
       icon: "success",
-      title: "SUCESSO",
-      text: "Banco inserido com sucesso !!!",
+      title: "Sucesso",
+      text: "Banco inserido com sucesso!",
     });
     fillBanks();
+  } catch (e) {
+    Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: e.message || "Não foi possível salvar banco.",
+    });
   }
 }
 
-async function delBanco(button) {
-  const bt = button.target.closest(".delBank");
+async function delBanco(evt) {
+  const bt = evt.target.closest(".delBank");
   if (!bt) return;
+
+  const linha = bt.closest("tr");
+  const nomeBanco = linha?.cells?.[0]?.textContent?.trim();
+  if (!nomeBanco) return;
 
   const result = await Swal.fire({
     icon: "question",
-    text: "Deseja excluir banco ?",
+    text: "Deseja excluir banco?",
     confirmButtonText: "Sim",
     denyButtonText: "Não",
     showDenyButton: true,
   });
-  if (result.isConfirmed) {
-    try {
-      const data = {
-        p_banco: getValue(bt),
-      };
-      const response = await fetch(`/setDelBanco`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      Swal.fire({
-        icon: "success",
-        title: "Sucesso",
-        text: "Banco removido com Sucesso !!!",
-      });
-      removeRow(button);
-    } catch (erro) {
-      Swal.fire({
-        icon: "error",
-        title: "ERRO",
-        text: `Não foi possivel salvar Alterações ${erro.message}`,
-      });
-    }
+  if (!result.isConfirmed) return;
+
+  try {
+    await fetchJson(`/setDelBanco`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ p_banco: nomeBanco }),
+    });
+    Swal.fire({
+      icon: "success",
+      title: "Sucesso",
+      text: "Banco removido com sucesso!",
+    });
+    linha.remove();
+  } catch (e) {
+    Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: `Não foi possível excluir: ${e.message}`,
+    });
   }
 }
 
-function getValue(button) {
-  const linha = button.closest("tr");
-  const valor = linha.cells[0].innerHTML;
-  return valor;
-}
-
-function removeRow(e) {
-  const line = e.target.closest("tr");
-  if (!line) return;
-  line.remove();
-}
-
-document.addEventListener("DOMContentLoaded", (event) => {
+/* =========================
+ * Init
+ * ========================= */
+document.addEventListener("DOMContentLoaded", () => {
   fillStates();
-  formatCEP("txt_cep");
+  CepUtils.attachMask("txt_cep");
   checkRadios();
   getDados();
   fillBanks();
-  addEventToElement("#bt_update", "click", setMeusDados);
-  addEventToElement("#bt_add_bank", "click", setBanco);
-  addEventToElement("#tbody-bank", "click", delBanco);
+
+  EventUtils.addEventToElement("#bt_update", "click", setMeusDados);
+  EventUtils.addEventToElement("#bt_add_bank", "click", setBanco);
+  EventUtils.addEventToElement("#tbody-bank", "click", delBanco);
+  EventUtils.addEventToElement("#txt_cep", "blur", findCep);
 });

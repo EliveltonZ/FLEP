@@ -1,18 +1,11 @@
 // app-orcamentos.js
 import {
-  enableEnterAsTab,
-  getText,
-  convertDataBr,
-  onmouseover,
-  setInnerHtml,
-  getInnerHtml,
-  getSelectedOptionText,
-  addEventToElement,
-  formatCurrency,
-  setText,
-  formatValueDecimal,
-  formatPercent,
-  insertButtonCellTable,
+  EventUtils,
+  DomUtils,
+  DateUtils,
+  FormatUtils,
+  TableUtils,
+  API,
 } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 import { enableTableFilterSort } from "./filtertable.js";
@@ -31,7 +24,10 @@ const el = (tag, props = {}, children = []) => {
   return node;
 };
 const currencyCell = (value) =>
-  el("td", { style: "text-align:center", textContent: formatCurrency(value) });
+  el("td", {
+    style: "text-align:center",
+    textContent: FormatUtils.formatCurrencyBR(value),
+  });
 const centerCell = (value) =>
   el("td", { style: "text-align:center", textContent: value });
 const html = (s) => {
@@ -60,7 +56,7 @@ const AppState = {
  * ========================= */
 async function fetchJson(url, options) {
   try {
-    const res = await fetch(url, options);
+    const res = await API.apiFetch(url, options);
 
     const ct = res.headers.get("content-type") || "";
     let body;
@@ -183,7 +179,7 @@ function renderOrcamentosTable(items) {
       el("td", { textContent: it.p_nome }),
       centerCell(it.p_ambientes),
       centerCell(it.p_status),
-      centerCell(convertDataBr(it.p_data)),
+      centerCell(DateUtils.toBR(it.p_data)),
     ]);
     tr.innerHTML += createButton("order");
     tbody.appendChild(tr);
@@ -216,7 +212,7 @@ function renderMateriaisAmbienteTable(items) {
     ]);
     const td = document.createElement("td");
     td.style.textAlign = "center";
-    td.innerHTML = insertButtonCellTable("delRow");
+    td.innerHTML = TableUtils.insertDeleteButtonCell("delRow");
     tr.appendChild(td);
     tbody.appendChild(tr);
   }
@@ -230,7 +226,7 @@ function renderMateriaisTable(items) {
       centerCell(it.p_id_material),
       el("td", { textContent: it.p_descricao }),
       centerCell(it.p_unidade),
-      centerCell(formatCurrency(it.p_preco)),
+      centerCell(FormatUtils.formatCurrencyBR(it.p_preco)),
     ]);
     tbody.appendChild(tr);
   }
@@ -283,7 +279,7 @@ function renderAmbientesValoresTable(items) {
     const tdDes = document.createElement("td");
     tdDes.textContent = it.p_descricao;
     const tdTot = document.createElement("td");
-    tdTot.textContent = formatCurrency(it.p_total);
+    tdTot.textContent = FormatUtils.formatCurrencyBR(it.p_total);
 
     tr.append(tdChk, tdId, tdDes, tdTot);
     tbody.appendChild(tr);
@@ -361,9 +357,6 @@ function computeTotals({ selecionados, entradaReais, taxaPercent }) {
 }
 
 async function loadComissoes() {
-  if (!AppState.idMarcenaria) {
-    throw new Error("idMarcenaria não definido");
-  }
   AppState.cache.comissoes = await api.getComissoes();
 }
 
@@ -372,7 +365,7 @@ function createElementComissao(name, id_label, percent, value) {
   <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;">
     <label class="form-label" style="width: 40%;">${name}:</label>
     <label id="lb_${id_label}_p" class="form-label">${percent}%</label>
-    <label id="lb_${id_label}" class="form-label">${formatCurrency(
+    <label id="lb_${id_label}" class="form-label">${FormatUtils.formatCurrencyBR(
     value
   )}</label>
   </div>
@@ -395,50 +388,83 @@ function renderComissoes() {
 function applyTotalsToUI(calc) {
   const { totals, total, taxa, comEntrada, comTaxa } = calc;
   const percentOfComTaxa = (value) =>
-    formatPercent(floatValue((value / comTaxa) * 100));
+    FormatUtils.formatPercentBR(floatValue((value / comTaxa) * 100));
 
-  setInnerHtml("lb_material", formatCurrency(totals.material));
-  setInnerHtml(
+  DomUtils.setInnerHtml(
+    "lb_material",
+    FormatUtils.formatCurrencyBR(totals.material)
+  );
+  DomUtils.setInnerHtml(
     "lb_material_p",
-    formatPercent(toNumber((totals.material / total) * 100))
+    FormatUtils.formatPercentBR(toNumber((totals.material / total) * 100))
   );
 
-  setInnerHtml("lb_instalacao", formatCurrency(totals.instalacao));
-  setInnerHtml("lb_instalacao_p", percentOfComTaxa(totals.instalacao));
+  DomUtils.setInnerHtml(
+    "lb_instalacao",
+    FormatUtils.formatCurrencyBR(totals.instalacao)
+  );
+  DomUtils.setInnerHtml("lb_instalacao_p", percentOfComTaxa(totals.instalacao));
 
   AppState.cache.comissoes.forEach((item) => {
-    setInnerHtml(
+    DomUtils.setInnerHtml(
       `lb_${item.p_descricao.toLowerCase()}`,
-      formatCurrency(totals[item.p_descricao.toLowerCase()])
+      FormatUtils.formatCurrencyBR(totals[item.p_descricao.toLowerCase()])
     );
 
-    setInnerHtml(
+    DomUtils.setInnerHtml(
       `lb_${item.p_descricao.toLowerCase()}_p`,
-      formatPercent(item.p_valor)
+      FormatUtils.formatPercentBR(item.p_valor)
     );
   });
 
-  setInnerHtml("lb_comissaort", formatCurrency(totals.rt));
-  setInnerHtml("lb_comissaort_p", formatPercent(totals.percentRt));
-
-  setInnerHtml("lb_total", formatCurrency(totals.aVista));
-
-  setInnerHtml("lb_lucro", formatCurrency(total * totals.lucro));
-  setInnerHtml("lb_lucro_p", formatPercent(totals.lucro * 100));
-  setInnerHtml("lb_impostos", formatCurrency(total * totals.imposto));
-  setInnerHtml("lb_totaljuros", formatCurrency(comEntrada));
-  setInnerHtml("lb_totalproposta", formatCurrency(total));
-  setInnerHtml(
-    "lb_impostos_p",
-    formatPercent(floatValue(totals.imposto * 100))
+  DomUtils.setInnerHtml(
+    "lb_comissaort",
+    FormatUtils.formatCurrencyBR(totals.rt)
   );
-  setInnerHtml("lb_juros", formatCurrency(comEntrada * taxa));
-  setInnerHtml("lb_juros_p", formatPercent(taxa * 100));
+  DomUtils.setInnerHtml(
+    "lb_comissaort_p",
+    FormatUtils.formatPercentBR(totals.percentRt)
+  );
 
-  const parcelas = toNumber(getSelectedOptionText("#txt_tipo"));
-  setInnerHtml(
+  DomUtils.setInnerHtml(
+    "lb_total",
+    FormatUtils.formatCurrencyBR(totals.aVista)
+  );
+
+  DomUtils.setInnerHtml(
+    "lb_lucro",
+    FormatUtils.formatCurrencyBR(total * totals.lucro)
+  );
+  DomUtils.setInnerHtml(
+    "lb_lucro_p",
+    FormatUtils.formatPercentBR(totals.lucro * 100)
+  );
+  DomUtils.setInnerHtml(
+    "lb_impostos",
+    FormatUtils.formatCurrencyBR(total * totals.imposto)
+  );
+  DomUtils.setInnerHtml(
+    "lb_totaljuros",
+    FormatUtils.formatCurrencyBR(comEntrada)
+  );
+  DomUtils.setInnerHtml(
+    "lb_totalproposta",
+    FormatUtils.formatCurrencyBR(total)
+  );
+  DomUtils.setInnerHtml(
+    "lb_impostos_p",
+    FormatUtils.formatPercentBR(floatValue(totals.imposto * 100))
+  );
+  DomUtils.setInnerHtml(
+    "lb_juros",
+    FormatUtils.formatCurrencyBR(comEntrada * taxa)
+  );
+  DomUtils.setInnerHtml("lb_juros_p", FormatUtils.formatPercentBR(taxa * 100));
+
+  const parcelas = toNumber(DomUtils.getSelectedOptionText("#txt_tipo"));
+  DomUtils.setInnerHtml(
     "lb_valorparcela",
-    formatCurrency(parcelas ? comEntrada / parcelas : 0)
+    FormatUtils.formatCurrencyBR(parcelas ? comEntrada / parcelas : 0)
   );
 }
 
@@ -496,13 +522,13 @@ function onClickCliente(e) {
   const cpf = row.cells[1]?.textContent.trim() ?? "";
   const nome = row.cells[2]?.textContent.trim() ?? "";
 
-  setInnerHtml("lb_id", id);
-  setInnerHtml("lb_cpf", cpf);
-  setInnerHtml("lb_nome", nome);
+  DomUtils.setInnerHtml("lb_id", id);
+  DomUtils.setInnerHtml("lb_cpf", cpf);
+  DomUtils.setInnerHtml("lb_nome", nome);
 }
 
 async function onConfirmGerarOrcamento() {
-  const nome = getInnerHtml("lb_nome") || "o cliente selecionado";
+  const nome = DomUtils.getInnerHtml("lb_nome") || "o cliente selecionado";
   const result = await Swal.fire({
     icon: "question",
     title: "Orçamentos",
@@ -516,7 +542,7 @@ async function onConfirmGerarOrcamento() {
 
   try {
     await api.setOrcamento({
-      p_id_cliente: getInnerHtml("lb_id"),
+      p_id_cliente: DomUtils.getInnerHtml("lb_id"),
     });
     await loadOrcamentos();
     Swal.fire({
@@ -534,8 +560,8 @@ async function onConfirmGerarOrcamento() {
 }
 
 async function onConfirmSetAmbiente() {
-  const categoria = getText("txt_tipoambiente");
-  const descricao = getText("txt_ambiente");
+  const categoria = DomUtils.getText("txt_tipoambiente");
+  const descricao = DomUtils.getText("txt_ambiente");
 
   if (!categoria || !descricao) {
     Swal.fire({
@@ -558,7 +584,7 @@ async function onConfirmSetAmbiente() {
     await api.setAmbiente({
       p_id_orcamento: AppState.orcamentoAtual,
       p_id_categoria: categoria,
-      p_descricao: descricao,
+      p_descricao: descricao.toUpperCase(),
     });
     await loadAmbientes(AppState.orcamentoAtual);
     Swal.fire({
@@ -578,9 +604,9 @@ async function onConfirmSetAmbiente() {
 function onClickMaterialLinha(e) {
   const row = e.target.closest("tr");
   if (!row || !row.cells?.length) return;
-  setText("txt_codigo", row.cells[0].textContent.trim());
-  setText("txt_descricao", row.cells[1].textContent.trim());
-  setText("txt_preco", row.cells[3].textContent.trim());
+  DomUtils.setText("txt_codigo", row.cells[0].textContent.trim());
+  DomUtils.setText("txt_descricao", row.cells[1].textContent.trim());
+  DomUtils.setText("txt_preco", row.cells[3].textContent.trim());
 }
 
 async function onConfirmInserirMaterialAmbiente() {
@@ -598,9 +624,9 @@ async function onConfirmInserirMaterialAmbiente() {
     await api.setMateriaisAmbientes({
       p_id_orcamento: AppState.orcamentoAtual,
       p_id_ambiente: AppState.idAmbiente,
-      p_id_material: getText("txt_codigo"),
-      p_quantidade: getText("txt_qtd"),
-      p_preco: formatValueDecimal(getText("txt_preco")),
+      p_id_material: DomUtils.getText("txt_codigo"),
+      p_quantidade: DomUtils.getText("txt_qtd"),
+      p_preco: FormatUtils.toDecimalStringFromBR(DomUtils.getText("txt_preco")),
     });
     await loadMateriaisAmbiente(AppState.idAmbiente);
     Swal.fire({
@@ -630,9 +656,9 @@ async function onConfirmInserirCusto() {
   try {
     await api.setCusto({
       p_id_orcamento: AppState.orcamentoAtual,
-      p_descricao: getText("txt_descricao_c"),
-      p_quantidade: getText("txt_qtd_c"),
-      p_preco: getText("txt_preco_c"),
+      p_descricao: DomUtils.getText("txt_descricao_c"),
+      p_quantidade: DomUtils.getText("txt_qtd_c"),
+      p_preco: DomUtils.getText("txt_preco_c"),
     });
     await loadCustos();
     Swal.fire({
@@ -685,8 +711,8 @@ async function delRow(button) {
 }
 
 async function onChangeTipoParcelamento() {
-  const taxa = getText("txt_tipo");
-  setInnerHtml("txt_taxa", formatPercent(taxa));
+  const taxa = DomUtils.getText("txt_tipo");
+  DomUtils.setInnerHtml("txt_taxa", FormatUtils.formatPercentBR(taxa));
   await atualizarTotaisUI();
 }
 
@@ -868,8 +894,8 @@ async function atualizarTotaisUI() {
     .filter((chk) => chk.checked)
     .map((chk) => data[Number(chk.dataset.index)]);
 
-  const entradaReais = toNumber(getText("txt_entrada"));
-  const taxaPercent = toNumber(getText("txt_tipo"));
+  const entradaReais = toNumber(DomUtils.getText("txt_entrada"));
+  const taxaPercent = toNumber(DomUtils.getText("txt_tipo"));
 
   const calc = computeTotals({ selecionados, entradaReais, taxaPercent });
   applyTotalsToUI(calc);
@@ -904,47 +930,58 @@ document.addEventListener("DOMContentLoaded", async () => {
   localStorage.removeItem("ambiente");
 
   // carregamento inicial
-  AppState.idMarcenaria = true;
-  if (AppState.idMarcenaria) {
-    await Promise.all([
-      loadComissoes(),
-      loadOrcamentos(),
-      loadCategoriasAmbientes(),
-      loadClientes(),
-      loadMateriais(),
-      bindParcelamentoRadios(),
-    ]);
-  } else {
-    location.href = "/";
-  }
+  await Promise.all([
+    loadComissoes(),
+    loadOrcamentos(),
+    loadCategoriasAmbientes(),
+    loadClientes(),
+    loadMateriais(),
+    bindParcelamentoRadios(),
+  ]);
 
   // efeitos e filtros
-  onmouseover("table");
-  onmouseover("table-clientes");
-  onmouseover("table-ambientes");
-  onmouseover("table_materiais");
+  EventUtils.tableHover("table");
+  EventUtils.tableHover("table-clientes");
+  EventUtils.tableHover("table-ambientes");
+  EventUtils.tableHover("table_materiais");
   enableTableFilterSort("table");
   enableTableFilterSort("table_materiais");
-  enableEnterAsTab?.();
+  EventUtils.enableEnterAsTab?.();
 
   // eventos (delegação e botões)
-  addEventToElement("#table", "dblclick", onRowDblClickOrcamentos);
-  addEventToElement("#table-ambientes", "dblclick", onRowDblClickAmbientes);
-  addEventToElement("#table_materiais tbody", "click", onClickMaterialLinha);
-  addEventToElement("#table-clientes", "click", onClickCliente);
-  addEventToElement(".order", "click", getValuesOrder);
+  EventUtils.addEventToElement("#table", "dblclick", onRowDblClickOrcamentos);
+  EventUtils.addEventToElement(
+    "#table-ambientes",
+    "dblclick",
+    onRowDblClickAmbientes
+  );
+  EventUtils.addEventToElement(
+    "#table_materiais tbody",
+    "click",
+    onClickMaterialLinha
+  );
+  EventUtils.addEventToElement("#table-clientes", "click", onClickCliente);
+  EventUtils.addEventToElement(".order", "click", getValuesOrder);
 
-  addEventToElement("#bt_new_orcamento", "click", onConfirmGerarOrcamento);
-  addEventToElement("#bt_new_ambiente", "click", onConfirmSetAmbiente);
-  addEventToElement(
+  EventUtils.addEventToElement(
+    "#bt_new_orcamento",
+    "click",
+    onConfirmGerarOrcamento
+  );
+  EventUtils.addEventToElement(
+    "#bt_new_ambiente",
+    "click",
+    onConfirmSetAmbiente
+  );
+  EventUtils.addEventToElement(
     "#bt_new_material",
     "click",
     onConfirmInserirMaterialAmbiente
   );
-  addEventToElement("#table-2 tbody", "click", delRow);
-  addEventToElement("#bt_new_custo", "click", onConfirmInserirCusto);
-  addEventToElement("#txt_tipo", "change", onChangeTipoParcelamento);
-  addEventToElement("#txt_entrada", "input", onChangeEntrada);
+  EventUtils.addEventToElement("#table-2 tbody", "click", delRow);
+  EventUtils.addEventToElement("#bt_new_custo", "click", onConfirmInserirCusto);
+  EventUtils.addEventToElement("#txt_tipo", "change", onChangeTipoParcelamento);
+  EventUtils.addEventToElement("#txt_entrada", "input", onChangeEntrada);
 
   // radios
   renderComissoes();

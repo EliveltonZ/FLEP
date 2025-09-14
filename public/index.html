@@ -8,7 +8,7 @@
     <title>Entrar</title>
     <script>!function(){const e=()=>localStorage.getItem("theme"),t=document.documentElement.getAttribute("data-bss-forced-theme"),a=()=>{if(t)return t;const a=e();if(a)return a;const r=document.documentElement.getAttribute("data-bs-theme");return r||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")},r=e=>{"auto"===e&&window.matchMedia("(prefers-color-scheme: dark)").matches?document.documentElement.setAttribute("data-bs-theme","dark"):document.documentElement.setAttribute("data-bs-theme",e)};r(a());const c=(e,t=!1)=>{const a=[].slice.call(document.querySelectorAll(".theme-switcher"));if(a.length){document.querySelectorAll("[data-bs-theme-value]").forEach((e=>{e.classList.remove("active"),e.setAttribute("aria-pressed","false")}));for(const t of a){const a=t.querySelector('[data-bs-theme-value="'+e+'"]');a&&(a.classList.add("active"),a.setAttribute("aria-pressed","true"))}}};window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",(()=>{const t=e();"light"!==t&&"dark"!==t&&r(a())})),window.addEventListener("DOMContentLoaded",(()=>{c(a()),document.querySelectorAll("[data-bs-theme-value]").forEach((e=>{e.addEventListener("click",(t=>{t.preventDefault();const a=e.getAttribute("data-bs-theme-value");(e=>{localStorage.setItem("theme",e)})(a),r(a),c(a)}))}))}))}();</script>
     <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css?h=a549af2a81cd9900ee897d8bc9c4b5e9">
-    <link rel="stylesheet" href="assets/css/styles.min.css?h=20e5c129764968230dc43f820bb9f181">
+    <link rel="stylesheet" href="assets/css/styles.min.css?h=4286fc57b649f91cf8c50da1c1d92dbc">
 <script type="module" src="./assets/js/index.js"></script>
 </head>
 
@@ -25,7 +25,7 @@
                             <form class="text-center" method="post">
                                 <div class="mb-3"><input class="form-control" type="email" id="txt_email" name="email" placeholder="Email"></div>
                                 <div class="mb-3"><input class="form-control" type="password" id="txt_senha" name="password" placeholder="Password"></div>
-                                <div class="mb-3"><button class="btn d-block w-100 btn-success" type="button" onclick="loginDataBase()">Login</button></div>
+                                <div class="mb-3"><button class="btn d-block w-100 btn-success" id="bt_login" type="button">Login</button></div>
                                 <p class="text-muted">Esqueceu a Senha ?</p>
                             </form>
                         </div>

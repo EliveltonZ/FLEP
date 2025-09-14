@@ -1,5 +1,6 @@
 // utils.classed.js (ESM)
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+import Swal from "./sweetalert2.esm.all.min.js";
 
 /* ============================
    Date utils
@@ -278,6 +279,25 @@ export class API {
     const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
     return res.json();
   }
+
+  static async apiFetch(url, options = {}) {
+    const res = await fetch(url, { credentials: "include", ...options });
+
+    if (res.status === 401) {
+      await Swal.fire({
+        icon: "error",
+        title: "Sessão expirada",
+        text: "Faça login novamente.",
+        confirmButtonText: "OK",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      });
+
+      window.location.href = "/index.html";
+      return new Promise(() => {}); // impede continuação após o redirect
+    }
+    return res;
+  }
 }
 
 export function validarCpfCnpj(valor) {
@@ -340,115 +360,102 @@ function validarCNPJ(cnpj) {
   return resultado === parseInt(digitos.charAt(1));
 }
 
-// public/js/auth-guard.js
-export async function requireAuth() {
-  try {
-    const res = await fetch("/auth/check", { credentials: "include" });
-    if (res.status === 401) window.location.href = "/index.html";
-    console.log("funcionando");
-  } catch {
-    window.location.href = "/index.html";
-  }
-}
-
-document.addEventListener("DOMContentLoaded", requireAuth);
-
 /* =========================================================
    ====== SHIMS DE COMPATIBILIDADE (exports antigos) =======
    (permitem migrar sem quebrar chamadas existentes)
 ========================================================= */
 
-// Datas
-export function setData(elementId) {
-  return DateUtils.setISODateToInput(elementId);
-}
-export function convertDataBr(date) {
-  return DateUtils.toBR(date);
-}
-export function convertDataISO(date) {
-  return DateUtils.toISO(date);
-}
+// // Datas
+// export function setData(elementId) {
+//   return DateUtils.setISODateToInput(elementId);
+// }
+// export function convertDataBr(date) {
+//   return DateUtils.toBR(date);
+// }
+// export function convertDataISO(date) {
+//   return DateUtils.toISO(date);
+// }
 
-// DOM
-export function getText(id) {
-  return DomUtils.getText(id);
-}
-export function setText(id, v) {
-  return DomUtils.setText(id, v);
-}
-export function getInnerHtml(id) {
-  return DomUtils.getInnerHtml(id);
-}
-export function setInnerHtml(id, v) {
-  return DomUtils.setInnerHtml(id, v);
-}
-export function getChecked(id) {
-  return DomUtils.getChecked(id);
-}
-export function setChecked(id, b) {
-  return DomUtils.setChecked(id, b);
-}
-export function setFocus(id) {
-  return DomUtils.setFocus(id);
-}
-export function getValue(id) {
-  return DomUtils.getUpperValue(id);
-}
-export function getSelectedOptionText(sel) {
-  return DomUtils.getSelectedOptionText(sel);
-}
-export function clearInputFields() {
-  return DomUtils.clearInputs();
-}
+// // DOM
+// export function getText(id) {
+//   return DomUtils.getText(id);
+// }
+// export function setText(id, v) {
+//   return DomUtils.setText(id, v);
+// }
+// export function getInnerHtml(id) {
+//   return DomUtils.getInnerHtml(id);
+// }
+// export function setInnerHtml(id, v) {
+//   return DomUtils.setInnerHtml(id, v);
+// }
+// export function getChecked(id) {
+//   return DomUtils.getChecked(id);
+// }
+// export function setChecked(id, b) {
+//   return DomUtils.setChecked(id, b);
+// }
+// export function setFocus(id) {
+//   return DomUtils.setFocus(id);
+// }
+// export function getValue(id) {
+//   return DomUtils.getUpperValue(id);
+// }
+// export function getSelectedOptionText(sel) {
+//   return DomUtils.getSelectedOptionText(sel);
+// }
+// export function clearInputFields() {
+//   return DomUtils.clearInputs();
+// }
 
-// Eventos / navegação
-export function addEventToElement(sel, evt, fn) {
-  return EventUtils.addEventToElement(sel, evt, fn);
-}
-export function enableEnterAsTab() {
-  return EventUtils.enableEnterAsTab();
-}
-export function onmouseover(tableId) {
-  return EventUtils.tableHover(tableId);
-}
+// // Eventos / navegação
+// export function addEventToElement(sel, evt, fn) {
+//   return EventUtils.addEventToElement(sel, evt, fn);
+// }
+// export function enableEnterAsTab() {
+//   return EventUtils.enableEnterAsTab();
+// }
+// export function onmouseover(tableId) {
+//   return EventUtils.tableHover(tableId);
+// }
 
-// Tabelas
-export function getIndexColumnValue(td, i) {
-  return TableUtils.getIndexColumnValue(td, i);
-}
-export function getColumnValue(td, i) {
-  return TableUtils.getColumnValue(td, i);
-}
-export function insertButtonCellTable(param) {
-  return TableUtils.insertDeleteButtonCell(param);
-}
+// // Tabelas
+// export function getIndexColumnValue(td, i) {
+//   return TableUtils.getIndexColumnValue(td, i);
+// }
+// export function getColumnValue(td, i) {
+//   return TableUtils.getColumnValue(td, i);
+// }
+// export function insertButtonCellTable(param) {
+//   return TableUtils.insertDeleteButtonCell(param);
+// }insertButtonCellTable
 
-// Formatação
-export function formatValueDecimal(v) {
-  return FormatUtils.toDecimalStringFromBR(v);
-}
-export function changeFormatCurrency(e) {
-  return FormatUtils.handleCurrencyInputEvent(e);
-}
-export function formatCurrency(v) {
-  return FormatUtils.formatCurrencyBR(v);
-}
-export function formatPercent(v) {
-  return FormatUtils.formatPercentBR(v);
-}
-export function convertDecimal(num) {
-  return FormatUtils.convertDecimalToPercent(num);
-}
+// // Formatação
+// export function formatValueDecimal(v) {
+//   return FormatUtils.toDecimalStringFromBR(v);
+// }
+// export function changeFormatCurrency(e) {
+//   return FormatUtils.handleCurrencyInputEvent(e);
+// }
+// export function formatCurrency(v) {
+//   return FormatUtils.formatCurrencyBR(v);
+// }
+// export function formatPercent(v) {
+//   return FormatUtils.formatPercentBR(v);
+// }
+// export function convertDecimal(num) {
+//   return FormatUtils.convertDecimalToPercent(num);
+// }
 
-// CEP
-export function formatCEP(inputId) {
-  return CepUtils.attachMask(inputId);
-}
+// // CEP
+// export function formatCEP(inputId) {
+//   return CepUtils.attachMask(inputId);
+// }
 
-// Cookies
-export async function getCookie(k) {
-  return API.getCookie(k);
-}
-export async function setCookie(v) {
-  return API.setCookie(v);
-}
+// // Cookies
+// export async function getCookie(k) {
+//   return API.getCookie(k);
+// }
+// export async function setCookie(v) {
+//   return API.setCookie(v);
+// }

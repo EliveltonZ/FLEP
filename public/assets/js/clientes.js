@@ -1,20 +1,10 @@
 // clients-addresses.js
 import {
-  getText,
-  setText,
-  formatCEP,
-  setInnerHtml,
-  insertButtonCellTable,
-  getInnerHtml,
+  DomUtils,
   EventUtils,
-  getCookie,
-  setChecked,
-  getChecked,
-  onmouseover,
   TableUtils,
-  addEventToElement,
   API,
-  validarCpfCnpj,
+  ValidationUtils,
 } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 import { enableTableFilterSort } from "./filtertable.js";
@@ -98,12 +88,12 @@ async function toJSONorThrow(res) {
 ================================ */
 
 async function fetchClients() {
-  const res = await fetch(`/getClients`);
+  const res = await API.apiFetch(`/getClients`);
   return toJSONorThrow(res);
 }
 
 async function fetchNewClient(payload) {
-  const res = await fetch("/setClient", {
+  const res = await API.apiFetch("/setClient", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -114,12 +104,12 @@ var idCliente = "";
 
 async function fetchAddresses(clientId) {
   idCliente = clientId;
-  const res = await fetch(`/getEnderecos?p_id_cliente=${clientId}`);
+  const res = await API.apiFetch(`/getEnderecos?p_id_cliente=${clientId}`);
   return toJSONorThrow(res);
 }
 
 async function fetchDelAddress(params) {
-  const res = await fetch("/delEndereco", {
+  const res = await API.apiFetch("/delEndereco", {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -127,7 +117,7 @@ async function fetchDelAddress(params) {
 }
 
 async function fetchAddress(params) {
-  const res = await fetch("/setEndereco", {
+  const res = await API.apiFetch("/setEndereco", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -135,12 +125,12 @@ async function fetchAddress(params) {
 }
 
 async function fetchClientByCpf(cpfOrCnpj) {
-  const res = await fetch(`/getClient?p_cpf_cnpj=${cpfOrCnpj}`);
+  const res = await API.apiFetch(`/getClient?p_cpf_cnpj=${cpfOrCnpj}`);
   return toJSONorThrow(res);
 }
 
 async function fetchCep(cep) {
-  const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+  const res = await API.apiFetch(`https://viacep.com.br/ws/${cep}/json/`);
   return toJSONorThrow(res);
 }
 
@@ -212,7 +202,9 @@ function renderAddressesTable(addresses = []) {
     tr.children[7].style.textAlign = "center";
 
     const tdBtn = document.createElement("td");
-    tdBtn.innerHTML = insertButtonCellTable(SELECTORS.delRowCep.slice(1));
+    tdBtn.innerHTML = TableUtils.insertDeleteButtonCell(
+      SELECTORS.delRowCep.slice(1)
+    );
     tr.appendChild(tdBtn);
     frag.appendChild(tr);
   });
@@ -280,7 +272,7 @@ async function onClientRowClick(event) {
 }
 
 function getTextSafe(id) {
-  return (getText(id) || "").trim();
+  return (DomUtils.getText(id) || "").trim();
 }
 
 function getClientValues() {
@@ -318,7 +310,7 @@ export async function validateClientForm(e) {
     return false;
   }
 
-  if (!validarCpfCnpj(v.cpf)) {
+  if (!ValidationUtils.validarCpfCnpj(v.cpf)) {
     await Swal.fire({
       icon: "error",
       title: "ERRO",
@@ -355,7 +347,7 @@ export async function validateClientForm(e) {
       p_indicacao: v.indicacao,
     };
 
-    await fetchNewClient(data);
+    await API.apiFetchNewClient(data);
 
     await Swal.fire({
       icon: "success",
@@ -378,19 +370,19 @@ export async function validateClientForm(e) {
 
 async function lookupCepAndFill() {
   try {
-    const raw = getText("cepEndereco");
+    const raw = DomUtils.getText("cepEndereco");
     const cep = normalizeCep(raw);
 
-    const endereco = await API.getCep(getText("cepEndereco"));
+    const endereco = await API.getCep(DomUtils.getText("cepEndereco"));
     if (endereco.erro) {
       Swal.fire("CEP não encontrado", "Verifique o CEP informado.", "warning");
       return;
     }
 
-    setText("logradouroEndereco", endereco.logradouro || "");
-    setText("bairroEndereco", endereco.bairro || "");
-    setText("cidadeEndereco", endereco.localidade || "");
-    setText("ufEndereco", endereco.uf || "");
+    DomUtils.setText("logradouroEndereco", endereco.logradouro || "");
+    DomUtils.setText("bairroEndereco", endereco.bairro || "");
+    DomUtils.setText("cidadeEndereco", endereco.localidade || "");
+    DomUtils.setText("ufEndereco", endereco.uf || "");
   } catch (err) {
     console.error(err);
     Swal.fire("Erro", "Falha ao consultar o CEP.", "error");
@@ -398,14 +390,14 @@ async function lookupCepAndFill() {
 }
 
 async function addAddressFromForm() {
-  const tipoEndereco = getText("tipoEndereco");
-  const cepEndereco = getText("cepEndereco");
-  const cidadeEndereco = getText("cidadeEndereco");
-  const numeroEndereco = getText("numeroEndereco");
-  const ufEndereco = getText("ufEndereco");
-  const complementoEndereco = getText("complementoEndereco");
-  const logradouroEndereco = getText("logradouroEndereco");
-  const bairroEndereco = getText("bairroEndereco");
+  const tipoEndereco = DomUtils.getText("tipoEndereco");
+  const cepEndereco = DomUtils.getText("cepEndereco");
+  const cidadeEndereco = DomUtils.getText("cidadeEndereco");
+  const numeroEndereco = DomUtils.getText("numeroEndereco");
+  const ufEndereco = DomUtils.getText("ufEndereco");
+  const complementoEndereco = DomUtils.getText("complementoEndereco");
+  const logradouroEndereco = DomUtils.getText("logradouroEndereco");
+  const bairroEndereco = DomUtils.getText("bairroEndereco");
 
   // Validações simples
   if (!tipoEndereco || !cepEndereco || !logradouroEndereco || !numeroEndereco) {
@@ -439,7 +431,7 @@ async function addAddressFromForm() {
   };
 
   const tbody = document.querySelector(SELECTORS.addressesTBody);
-  const addresses = await fetchAddresses(data.p_id_cliente);
+  const addresses = await API.apiFetchAddresses(data.p_id_cliente);
   if (!addresses.length) {
     tbody.innerHTML = "";
   }
@@ -460,7 +452,9 @@ async function addAddressFromForm() {
   tr.children[0].style.textAlign = "center";
 
   const tdBtn = document.createElement("td");
-  tdBtn.innerHTML = insertButtonCellTable(SELECTORS.delRowCep.slice(1));
+  tdBtn.innerHTML = TableUtils.insertDeleteButtonCell(
+    SELECTORS.delRowCep.slice(1)
+  );
   tr.appendChild(tdBtn);
   tbody.appendChild(tr);
 
@@ -473,21 +467,21 @@ async function addAddressFromForm() {
 
 async function populateClientFormByCpf() {
   try {
-    const cpf = getText("cpf");
+    const cpf = DomUtils.getText("cpf");
 
-    if (!cpf || !validarCpfCnpj(cpf)) {
+    if (!cpf || !ValidationUtils.validarCpfCnpj(cpf)) {
       Swal.fire("Erro", "CPF invalido.", "error");
       return;
     }
 
-    const data = await fetchClientByCpf(cpf);
+    const data = await API.apiFetchClientByCpf(cpf);
     if (!data || !data.length) return;
 
     const cli = data[0];
-    setText("nome", cli.p_nome || "");
-    setText("telefone", cli.p_telefone || "");
-    setText("email", cli.p_email || "");
-    setText("indicacao", cli.p_indicacao || "");
+    DomUtils.setText("nome", cli.p_nome || "");
+    DomUtils.setText("telefone", cli.p_telefone || "");
+    DomUtils.setText("email", cli.p_email || "");
+    DomUtils.setText("indicacao", cli.p_indicacao || "");
   } catch (err) {
     console.error(err);
     Swal.fire(
@@ -579,8 +573,8 @@ function wireEvents() {
   );
 
   // Melhorar UX de hover das tabelas existentes
-  onmouseover("ctable");
-  onmouseover("etable");
+  EventUtils.tableHover("ctable");
+  EventUtils.tableHover("etable");
 }
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -1,8 +1,8 @@
-import { getText, setText, addEventToElement, formatPercent } from "./utils.js";
+import { DomUtils, EventUtils, FormatUtils, API } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 
 async function getComissoes() {
-  const response = await fetch(`/getComissoes`);
+  const response = await API.apiFetch(`/getComissoes`);
 
   const data = await response.json();
   return data;
@@ -18,15 +18,15 @@ async function fillTableComissoes() {
     tr.innerHTML = `
     <td ${config} >${element.p_id_comissao}</td>
     <td>${element.p_descricao}</td>
-    <td ${config} >${formatPercent(element.p_valor)}</td>
+    <td ${config} >${FormatUtils.formatPercentBR(element.p_valor)}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
 async function setComissoes() {
-  const descricao = getText("txt_descricao");
-  const valor = getText("txt_porcentagem");
+  const descricao = DomUtils.getText("txt_descricao");
+  const valor = DomUtils.getText("txt_porcentagem");
   if (!descricao || !valor) {
     Swal.fire({
       icon: "warning",
@@ -52,7 +52,7 @@ async function setComissoes() {
         p_valor: valor,
       };
 
-      const response = await fetch("/setComissoes", {
+      const response = await API.apiFetch("/setComissoes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -77,5 +77,5 @@ async function setComissoes() {
 
 document.addEventListener("DOMContentLoaded", (event) => {
   fillTableComissoes();
-  addEventToElement("#bt_inserir", "click", setComissoes);
+  EventUtils.addEventToElement("#bt_inserir", "click", setComissoes);
 });

@@ -1,11 +1,5 @@
 import Swal from "./sweetalert2.esm.all.min.js";
-import {
-  getText,
-  convertDecimal,
-  onmouseover,
-  insertButtonCellTable,
-  addEventToElement,
-} from "./utils.js";
+import { DomUtils, FormatUtils, TableUtils, EventUtils, API } from "./utils.js";
 
 function el(tag, text) {
   const node = document.createElement(tag);
@@ -14,7 +8,7 @@ function el(tag, text) {
 }
 
 async function fillTableCredito() {
-  const response = await fetch(`/getTaxasParcelamentos?p_tipo=C`);
+  const response = await API.apiFetch(`/getTaxasParcelamentos?p_tipo=C`);
 
   const data = await response.json();
 
@@ -25,11 +19,11 @@ async function fillTableCredito() {
     const tr = document.createElement("tr");
     tr.append(
       el("td", item.p_qtd_parcela),
-      el("td", convertDecimal(item.p_taxa))
+      el("td", FormatUtils.convertDecimalToPercent(item.p_taxa))
     );
 
     const td = document.createElement("td");
-    td.innerHTML = insertButtonCellTable("deleteRowC");
+    td.innerHTML = TableUtils.insertDeleteButtonCell("deleteRowC");
     tr.append(td);
     tr.children[0].style.textAlign = "center";
     tr.children[1].style.textAlign = "center";
@@ -39,7 +33,7 @@ async function fillTableCredito() {
 }
 
 async function fillTableFinanciamento() {
-  const response = await fetch(`/getTaxasParcelamentos?p_tipo=F`);
+  const response = await API.apiFetch(`/getTaxasParcelamentos?p_tipo=F`);
 
   const data = await response.json();
 
@@ -50,10 +44,10 @@ async function fillTableFinanciamento() {
     const tr = document.createElement("tr");
     tr.append(
       el("td", item.p_qtd_parcela),
-      el("td", convertDecimal(item.p_taxa))
+      el("td", FormatUtils.convertDecimalToPercent(item.p_taxa))
     );
     const bt = document.createElement("td");
-    bt.innerHTML = insertButtonCellTable("deleteRowF");
+    bt.innerHTML = TableUtils.insertDeleteButtonCell("deleteRowF");
     tr.append(bt);
     tr.children[0].style.textAlign = "center";
     tr.children[1].style.textAlign = "center";
@@ -62,8 +56,8 @@ async function fillTableFinanciamento() {
   });
 }
 
-window.setTaxa = async function () {
-  if (!getText("txt_tipo")) {
+async function setTaxa() {
+  if (!DomUtils.getText("txt_tipo")) {
     Swal.fire({
       icon: "warning",
       title: "Atenção",
@@ -82,11 +76,11 @@ window.setTaxa = async function () {
     if (result.isConfirmed) {
       try {
         const data = {
-          p_qtd_parcela: getText("txt_parcela"),
-          p_taxa: getText("txt_taxa"),
-          p_tipo: getText("txt_tipo"),
+          p_qtd_parcela: DomUtils.getText("txt_parcela"),
+          p_taxa: DomUtils.getText("txt_taxa"),
+          p_tipo: DomUtils.getText("txt_tipo"),
         };
-        const response = await fetch(`/setTaxasParcelamentos`, {
+        const response = await API.apiFetch(`/setTaxasParcelamentos`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
@@ -107,7 +101,7 @@ window.setTaxa = async function () {
       }
     }
   });
-};
+}
 
 async function delRowF(e) {
   const bt = e.target.closest(".deleteRowF");
@@ -161,7 +155,7 @@ async function deleteRow(button, tipo) {
       p_tipo: tipo,
     };
 
-    const response = await fetch("setDelTaxasParcelamentos", {
+    const response = await API.apiFetch("setDelTaxasParcelamentos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -186,9 +180,10 @@ function getValueFloat(value) {
 document.addEventListener("DOMContentLoaded", (event) => {
   fillTableCredito();
   fillTableFinanciamento();
-  onmouseover("ctable");
-  onmouseover("ftable");
+  EventUtils.tableHover("ctable");
+  EventUtils.tableHover("ftable");
 });
 
-addEventToElement("#ftable tbody", "click", delRowF);
-addEventToElement("#ctable tbody", "click", delRowC);
+EventUtils.addEventToElement("#ftable tbody", "click", delRowF);
+EventUtils.addEventToElement("#ctable tbody", "click", delRowC);
+EventUtils.addEventToElement("#bt_new_taxa", "click", setTaxa);

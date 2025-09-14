@@ -1,9 +1,9 @@
-import { enableEnterAsTab, getText, setCookie } from "./utils.js";
+import { EventUtils, DomUtils } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 
-window.loginDataBase = async function () {
-  const email = getText("txt_email");
-  const senha = getText("txt_senha");
+async function loginDataBase() {
+  const email = DomUtils.getText("txt_email");
+  const senha = DomUtils.getText("txt_senha");
 
   try {
     const response = await fetch(
@@ -20,24 +20,14 @@ window.loginDataBase = async function () {
       return Swal.fire({ icon: "error", text: "Usuário ou senha inválidos." });
     }
 
-    // compatibilidade com o restante do app
-    const userId = data.user?.id;
-    if (userId) {
-      localStorage.setItem("id", userId);
-      await setIdEnterprise(userId); // mantém seu fluxo atual
-    }
-
     window.location.href = "/orcamentos.html";
   } catch (e) {
     Swal.fire({ icon: "error", text: "Não foi possível conectar." });
   }
-};
-
-async function setIdEnterprise(value) {
-  const data = { id: value };
-  await setCookie(data);
 }
 
 document.addEventListener("DOMContentLoaded", (event) => {
-  enableEnterAsTab();
+  EventUtils.enableEnterAsTab();
 });
+
+EventUtils.addEventToElement("#bt_login", "click", loginDataBase);

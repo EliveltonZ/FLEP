@@ -1,8 +1,8 @@
-import { enableEnterAsTab, getText, getCookie } from "./utils.js";
+import { DomUtils, EventUtils, API } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 
 async function getCategoriasAmbiente() {
-  const response = await fetch(`/getCategoriasAmbientes`);
+  const response = await API.apiFetch(`/getCategoriasAmbientes`);
 
   const data = await response.json();
 
@@ -18,8 +18,8 @@ async function getCategoriasAmbiente() {
   });
 }
 
-window.setCategoriaAmbiente = async function () {
-  const category = getText("txt_categoria");
+async function setCategoriaAmbiente() {
+  const category = DomUtils.getText("txt_categoria");
   if (!category) {
     Swal.fire({
       icon: "warning",
@@ -44,7 +44,7 @@ window.setCategoriaAmbiente = async function () {
         p_categoria: category.toUpperCase(),
       };
 
-      const response = await fetch(`/setCategoriasAmbientes`, {
+      const response = await API.apiFetch(`/setCategoriasAmbientes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -64,8 +64,10 @@ window.setCategoriaAmbiente = async function () {
       });
     }
   }
-};
+}
 
 document.addEventListener("DOMContentLoaded", (event) => {
   getCategoriasAmbiente();
 });
+
+EventUtils.addEventToElement("#bt_new_category", "click", setCategoriaAmbiente);

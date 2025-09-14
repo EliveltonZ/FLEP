@@ -1,9 +1,24 @@
-import { formatCurrency, onmouseover, getText, getCookie } from "./utils.js";
+import { FormatUtils, EventUtils, DomUtils, API } from "./utils.js";
 import { enableTableFilterSort } from "./filtertable.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 
+async function fetchJson(url, options) {
+  const res = await API.apiFetch(url, options);
+  const ct = res.headers.get("content-type") || "";
+  const body = ct.includes("application/json")
+    ? await res.json()
+    : await res.text();
+  if (!res.ok) {
+    const msg =
+      (body && (body.error || body.message)) ||
+      res.statusText ||
+      "Erro na requisição";
+    throw new Error(msg);
+  }
+  return body;
+}
 async function fillTableMateriais() {
-  const response = await fetch(`/fillTableMateriais`);
+  const response = await API.apiFetch(`/fillTableMateriais`);
 
   if (!response.ok) {
     Swal.fire({
@@ -20,7 +35,9 @@ async function fillTableMateriais() {
       <td style="text-align: center" >${item.p_id_material}</td>
       <td >${item.p_descricao}</td>
       <td style="text-align: center">${item.p_unidade}</td>
-      <td style="text-align: center">${formatCurrency(item.p_preco)}</td>
+      <td style="text-align: center">${FormatUtils.formatCurrencyBR(
+        item.p_preco
+      )}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -28,7 +45,7 @@ async function fillTableMateriais() {
 }
 
 async function fillTableCategorias() {
-  const response = await fetch(`/fillTableCategorias`);
+  const response = await API.apiFetch(`/fillTableCategorias`);
   if (!response.ok) {
     Swal.fire({
       icon: "error",
@@ -49,9 +66,9 @@ async function fillTableCategorias() {
   }
 }
 
-window.setCategoria = async function () {
-  const idCategoria = getText("cod_categoria");
-  const categoria = getText("desc_categoria");
+async function setCategoria() {
+  const idCategoria = DomUtils.getText("cod_categoria");
+  const categoria = DomUtils.getText("desc_categoria");
 
   if (!idCategoria || !categoria) {
     Swal.fire({
@@ -76,7 +93,7 @@ window.setCategoria = async function () {
       p_categoria: categoria.toUpperCase(),
     };
 
-    const response = await fetch("/setCategoria", {
+    const response = await API.apiFetch("/setCategoria", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -99,14 +116,14 @@ window.setCategoria = async function () {
       });
     }
   }
-};
+}
 
-window.setMaterais = async function () {
-  const descricao = getText("desc_material");
-  const unidade = getText("unid_material");
-  const preco = getText("preco_material");
-  const categoria = getText("cat_material");
-  const codigo = getText("cod_material");
+async function setMaterais() {
+  const descricao = DomUtils.getText("desc_material");
+  const unidade = DomUtils.getText("unid_material");
+  const preco = DomUtils.getText("preco_material");
+  const categoria = DomUtils.getText("cat_material");
+  const codigo = DomUtils.getText("cod_material");
 
   if (!descricao || !unidade || !preco || !categoria || !codigo) {
     Swal.fire({
@@ -134,7 +151,7 @@ window.setMaterais = async function () {
       p_id_material: codigo,
     };
 
-    const response = await fetch("/setMateriais", {
+    const response = await API.apiFetch("/setMateriais", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -156,10 +173,10 @@ window.setMaterais = async function () {
       });
     }
   }
-};
+}
 
 async function optionCategorias() {
-  const response = await fetch(`/fillTableCategorias`);
+  const response = await API.apiFetch(`/fillTableCategorias`);
 
   const data = await response.json();
   const select = document.getElementById("cat_material");
@@ -176,9 +193,12 @@ async function optionCategorias() {
 document.addEventListener("DOMContentLoaded", (event) => {
   fillTableMateriais();
   fillTableCategorias();
-  onmouseover("ctable");
-  onmouseover("mtable");
+  EventUtils.tableHover("ctable");
+  EventUtils.tableHover("mtable");
   enableTableFilterSort("ctable");
   enableTableFilterSort("mtable");
   optionCategorias();
 });
+
+EventUtils.addEventToElement("#bt_new_material", "click", setMaterais);
+EventUtils.addEventToElement("#bt_new_category", "click", setCategoria);
