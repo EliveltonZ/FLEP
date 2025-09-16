@@ -1,53 +1,150 @@
-// app-meusdados.js (padronizado com API.apiFetch + fetchJson)
-import {
-  DomUtils,
-  CepUtils,
-  TableUtils,
-  EventUtils,
-  API, // << usar API.apiFetch (401 -> SweetAlert + redirect)
-} from "./utils.js";
+// meusDados.js (refatorado e padronizado)
+import { DomUtils, CepUtils, TableUtils, EventUtils, API } from "./utils.js";
 import Swal from "./sweetalert2.esm.all.min.js";
-import { clearTableBody } from "./dom.js";
 
 /* =========================
- * Helpers
+ * Seletores
  * ========================= */
-const q = (sel, root = document) => root.querySelector(sel);
-const el = (tag, text) => {
-  const node = document.createElement(tag);
-  if (text != null) node.textContent = text;
-  return node;
+const SEL = {
+  // perfil
+  IN_TIPO_PF: "radio-pf",
+  IN_TIPO_PJ: "radio-pj",
+  LBL_NOME: "lb_nome",
+  LBL_DOC: "lb_documento",
+  IN_RAZAO: "txt_razaosocial",
+  IN_DOC: "txt_cnpj_cpf",
+  IN_CEP: "txt_cep",
+  IN_END: "txt_endereco",
+  IN_BAIRRO: "txt_bairro",
+  IN_CIDADE: "txt_cidade",
+  IN_UF: "txt_estado",
+  IN_NUM: "txt_numero",
+  IN_LUCRO: "txt_lucro",
+
+  // bancos
+  TBODY_BANCOS: "#tbody-bank",
+  IN_BANCO: "#txt_banco",
+  IN_TIPO_CONTA: "#txt_tipoconta",
+  IN_AGENCIA: "#txt_agencia",
+  IN_NUM_CONTA: "#txt_numconta",
+  IN_PIX: "#txt_pix",
+  BTN_DEL_BANK: ".delBank",
+
+  // botões
+  BT_ATUALIZAR: "#bt_update",
+  BT_ADD_BANK: "#bt_add_bank",
 };
 
-// Wrapper padrão: usa API.apiFetch e já trata JSON / erro
-async function fetchJson(url, options) {
-  const res = await API.apiFetch(url, options);
-  const ct = res.headers.get("content-type") || "";
-  const body = ct.includes("application/json")
-    ? await res.json()
-    : await res.text();
-  if (!res.ok) {
-    const msg =
-      (body && (body.error || body.message)) ||
-      res.statusText ||
-      "Erro na requisição";
-    throw new Error(msg);
+/* =========================
+ * Helpers DOM
+ * ========================= */
+const q = (sel, root = document) => root.querySelector(sel);
+const qa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+const el = (tag, props = {}, children = []) => {
+  const node = document.createElement(tag);
+  const { style, className, dataset, ...rest } = props || {};
+  Object.assign(node, rest);
+  if (className) node.className = className;
+  if (style) {
+    if (typeof style === "string") node.setAttribute("style", style);
+    else Object.assign(node.style, style);
   }
-  return body;
+  if (dataset)
+    Object.entries(dataset).forEach(([k, v]) => (node.dataset[k] = String(v)));
+  (children || []).forEach((c) =>
+    node.appendChild(typeof c === "string" ? document.createTextNode(c) : c)
+  );
+  return node;
+};
+const td = (text, center = false) =>
+  el("td", { ...(center ? { style: { textAlign: "center" } } : {}) }, [
+    String(text ?? ""),
+  ]);
+
+/* =========================
+ * fetchJson (robusto)
+ * ========================= */
+async function fetchJson(url, options) {
+  try {
+    const res = await API.apiFetch(url, options);
+    const ct = res.headers.get("content-type") || "";
+    let body;
+    if (ct.includes("application/json")) {
+      body = await res.json();
+    } else {
+      const text = await res.text();
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = { raw: text };
+      }
+    }
+    if (!res.ok) {
+      const msg =
+        body?.error ||
+        body?.message ||
+        body?.raw ||
+        res.statusText ||
+        "Erro na requisição";
+      throw new Error(msg);
+    }
+    return body;
+  } catch (err) {
+    console.error("fetchJson:", url, err);
+    throw err;
+  }
 }
 
 /* =========================
- * CEP (externo – não precisa JWT)
+ * API
  * ========================= */
-async function findCep() {
+const api = {
+  getMeusDados: () => fetchJson(`/getMeusDados`),
+  setMeusDados: (payload) =>
+    fetchJson(`/setMeusDados`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  getBancos: () => fetchJson(`/getBancos`),
+  setBanco: (payload) =>
+    fetchJson(`/setBancos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  delBanco: (payload) =>
+    fetchJson(`/setDelBanco`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  // CEP externo (ViaCEP). Se preferir, use um proxy backend.
+  getCep: async (cep) => {
+    const url = `https://viacep.com.br/ws/${encodeURIComponent(cep)}/json/`;
+    const res = await fetch(url, { credentials: "omit", mode: "cors" }); // <- sem cookies
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data;
+  },
+};
+
+/* =========================
+ * CEP
+ * ========================= */
+async function onFindCep() {
   try {
-    const cep = DomUtils.getText("txt_cep");
-    const endereco = await API.getCep(cep);
+    const cep = DomUtils.getText(SEL.IN_CEP).replace("-", "");
+    const endereco = await api.getCep(cep);
     if (endereco?.erro) throw new Error("CEP não encontrado.");
-    DomUtils.setText("txt_endereco", endereco.logradouro || "");
-    DomUtils.setText("txt_bairro", endereco.bairro || "");
-    DomUtils.setText("txt_cidade", endereco.localidade || "");
-    DomUtils.setText("txt_estado", endereco.uf || "");
+
+    DomUtils.setText(SEL.IN_END, endereco.logradouro || "");
+    DomUtils.setText(SEL.IN_BAIRRO, endereco.bairro || "");
+    DomUtils.setText(SEL.IN_CIDADE, endereco.localidade || "");
+    DomUtils.setText(SEL.IN_UF, endereco.uf || "");
   } catch (e) {
     Swal.fire({
       icon: "warning",
@@ -90,61 +187,55 @@ function fillStates() {
     "SE",
     "TO",
   ];
-  const select = q("#txt_estado");
+  const select = q(`#${SEL.IN_UF}`);
   select.innerHTML = `<option value="-">-</option>`;
-  estados.forEach((uf) => {
-    const option = document.createElement("option");
-    option.value = uf;
-    option.text = uf;
-    select.appendChild(option);
-  });
+  estados.forEach((uf) =>
+    select.appendChild(el("option", { value: uf }, [uf]))
+  );
 }
 
-function checkRadios() {
-  const radios = document.querySelectorAll('input[name="tipo"]');
-  radios.forEach((radio) => {
-    radio.addEventListener("change", () => {
-      if (!radio.checked) return;
-      if (radio.id === "radio-pj") {
-        DomUtils.setInnerHtml("lb_nome", "Razão Social: *");
-        DomUtils.setInnerHtml("lb_documento", "CNPJ: *");
-      } else {
-        DomUtils.setInnerHtml("lb_nome", "Nome: *");
-        DomUtils.setInnerHtml("lb_documento", "CPF: *");
-      }
-    });
-  });
+function bindTipoClienteRadios() {
+  const radios = qa('input[name="tipo"]');
+  const updateLabels = (isPJ) => {
+    DomUtils.setInnerHtml(SEL.LBL_NOME, isPJ ? "Razão Social: *" : "Nome: *");
+    DomUtils.setInnerHtml(SEL.LBL_DOC, isPJ ? "CNPJ: *" : "CPF: *");
+  };
+  radios.forEach((radio) =>
+    radio.addEventListener("change", () =>
+      updateLabels(radio.id === "radio-pj")
+    )
+  );
 }
 
 function setRadio(value) {
-  value === "PF"
-    ? DomUtils.setChecked("radio-pf", true)
-    : DomUtils.setChecked("radio-pj", true);
+  if (String(value).toUpperCase() === "PF")
+    DomUtils.setChecked(SEL.IN_TIPO_PF, true);
+  else DomUtils.setChecked(SEL.IN_TIPO_PJ, true);
 }
 
 function getRadio() {
-  return DomUtils.getChecked("radio-pf") ? "PF" : "PJ";
+  return DomUtils.getChecked(SEL.IN_TIPO_PF) ? "PF" : "PJ";
 }
 
 /* =========================
  * Dados (perfil + bancos)
  * ========================= */
-async function getDados() {
+async function loadMeusDados() {
   try {
-    const data = await fetchJson(`/getMeusDados`);
+    const data = await api.getMeusDados();
     const row = Array.isArray(data) ? data[0] : data;
     if (!row) return;
 
     setRadio(row.p_tipocliente || "PJ");
-    DomUtils.setText("txt_razaosocial", row.p_nomerazao || "");
-    DomUtils.setText("txt_cnpj_cpf", row.p_cnpjcpf || "");
-    DomUtils.setText("txt_cep", row.p_cep || "");
-    DomUtils.setText("txt_endereco", row.p_endereco || "");
-    DomUtils.setText("txt_bairro", row.p_bairro || "");
-    DomUtils.setText("txt_cidade", row.p_cidade || "");
-    DomUtils.setText("txt_estado", row.p_estado || "-");
-    DomUtils.setText("txt_numero", row.p_numero || "");
-    DomUtils.setText("txt_lucro", row.p_lucro ?? 0);
+    DomUtils.setText(SEL.IN_RAZAO, row.p_nomerazao || "");
+    DomUtils.setText(SEL.IN_DOC, row.p_cnpjcpf || "");
+    DomUtils.setText(SEL.IN_CEP, row.p_cep || "");
+    DomUtils.setText(SEL.IN_END, row.p_endereco || "");
+    DomUtils.setText(SEL.IN_BAIRRO, row.p_bairro || "");
+    DomUtils.setText(SEL.IN_CIDADE, row.p_cidade || "");
+    DomUtils.setText(SEL.IN_UF, row.p_estado || "-");
+    DomUtils.setText(SEL.IN_NUM, row.p_numero || "");
+    DomUtils.setText(SEL.IN_LUCRO, row.p_lucro ?? 0);
   } catch (e) {
     Swal.fire({
       icon: "error",
@@ -154,16 +245,16 @@ async function getDados() {
   }
 }
 
-async function setMeusDados() {
-  const nomerazao = DomUtils.getText("txt_razaosocial");
-  const cpfcnpj = DomUtils.getText("txt_cnpj_cpf");
-  const cep = DomUtils.getText("txt_cep");
-  const endereco = DomUtils.getText("txt_endereco");
-  const bairro = DomUtils.getText("txt_bairro");
-  const cidade = DomUtils.getText("txt_cidade");
-  const estado = DomUtils.getText("txt_estado");
-  const numero = DomUtils.getText("txt_numero");
-  const lucro = DomUtils.getText("txt_lucro");
+async function onSalvarMeusDados() {
+  const nomerazao = DomUtils.getText(SEL.IN_RAZAO);
+  const cpfcnpj = DomUtils.getText(SEL.IN_DOC);
+  const cep = DomUtils.getText(SEL.IN_CEP);
+  const endereco = DomUtils.getText(SEL.IN_END);
+  const bairro = DomUtils.getText(SEL.IN_BAIRRO);
+  const cidade = DomUtils.getText(SEL.IN_CIDADE);
+  const estado = DomUtils.getText(SEL.IN_UF);
+  const numero = DomUtils.getText(SEL.IN_NUM);
+  const lucro = DomUtils.getText(SEL.IN_LUCRO);
 
   if (
     !nomerazao ||
@@ -184,7 +275,7 @@ async function setMeusDados() {
     return;
   }
 
-  const result = await Swal.fire({
+  const { isConfirmed } = await Swal.fire({
     icon: "question",
     title: "Salvar",
     text: "Deseja salvar alterações?",
@@ -192,24 +283,20 @@ async function setMeusDados() {
     denyButtonText: "Cancelar",
     confirmButtonText: "Confirmar",
   });
-  if (!result.isConfirmed) return;
+  if (!isConfirmed) return;
 
   try {
-    await fetchJson(`/setMeusDados`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        p_tipocliente: getRadio(),
-        p_nomerazao: nomerazao,
-        p_cnpjcpf: cpfcnpj,
-        p_cep: cep,
-        p_endereco: endereco,
-        p_bairro: bairro,
-        p_cidade: cidade,
-        p_estado: estado,
-        p_numero: numero,
-        p_lucro: lucro,
-      }),
+    await api.setMeusDados({
+      p_tipocliente: getRadio(),
+      p_nomerazao: nomerazao,
+      p_cnpjcpf: cpfcnpj,
+      p_cep: cep,
+      p_endereco: endereco,
+      p_bairro: bairro,
+      p_cidade: cidade,
+      p_estado: estado,
+      p_numero: numero,
+      p_lucro: lucro,
     });
     Swal.fire({
       icon: "success",
@@ -225,26 +312,41 @@ async function setMeusDados() {
   }
 }
 
-async function fillBanks() {
+/* =========================
+ * Bancos
+ * ========================= */
+function clearBanksTbody() {
+  const tbody = q(SEL.TBODY_BANCOS);
+  if (tbody) tbody.innerHTML = "";
+}
+
+async function loadBancos() {
   try {
-    const data = await fetchJson(`/getBancos`);
-    const tbody = q("#tbody-bank");
-    clearTableBody("#tbody-bank");
-    (Array.isArray(data) ? data : []).forEach((item) => {
-      const tr = document.createElement("tr");
-      tr.append(
-        el("td", item.p_banco),
-        el("td", item.p_agencia),
-        el("td", item.p_numero),
-        el("td", item.p_tipo_conta),
-        el("td", item.p_pix)
+    const data = await api.getBancos();
+    const list = Array.isArray(data) ? data : [];
+    const tbody = q(SEL.TBODY_BANCOS);
+    clearBanksTbody();
+
+    const frag = document.createDocumentFragment();
+    list.forEach((item) => {
+      const tr = el("tr", {}, [
+        td(item.p_banco),
+        td(item.p_agencia),
+        td(item.p_numero),
+        td(item.p_tipo_conta),
+        td(item.p_pix),
+      ]);
+
+      const tdBtn = el("td", { style: { textAlign: "center" } });
+      tdBtn.innerHTML = TableUtils.insertDeleteButtonCell(
+        SEL.BTN_DEL_BANK.slice(1)
       );
-      const td = document.createElement("td");
-      td.innerHTML = TableUtils.insertDeleteButtonCell("delBank");
-      td.style.textAlign = "center";
-      tr.append(td);
-      tbody.appendChild(tr);
+      tr.appendChild(tdBtn);
+
+      frag.appendChild(tr);
     });
+
+    tbody.appendChild(frag);
   } catch {
     Swal.fire({
       icon: "error",
@@ -254,8 +356,14 @@ async function fillBanks() {
   }
 }
 
-async function setBanco() {
-  const result = await Swal.fire({
+async function onSalvarBanco() {
+  const { value: banco } = q(SEL.IN_BANCO) ?? {};
+  const { value: tipo_conta } = q(SEL.IN_TIPO_CONTA) ?? {};
+  const { value: agencia } = q(SEL.IN_AGENCIA) ?? {};
+  const { value: numconta } = q(SEL.IN_NUM_CONTA) ?? {};
+  const { value: pix } = q(SEL.IN_PIX) ?? {};
+
+  const { isConfirmed } = await Swal.fire({
     icon: "question",
     title: "Inserir",
     text: "Deseja salvar banco?",
@@ -263,26 +371,24 @@ async function setBanco() {
     confirmButtonText: "Confirmar",
     denyButtonText: "Cancelar",
   });
-  if (!result.isConfirmed) return;
+  if (!isConfirmed) return;
 
   try {
-    await fetchJson(`/setBancos`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        p_banco: q("#txt_banco")?.value || "",
-        p_tipo_conta: q("#txt_tipoconta")?.value || "",
-        p_numero: q("#txt_agencia")?.value || "",
-        p_agencia: q("#txt_numconta")?.value || "",
-        p_pix: q("#txt_pix")?.value || "",
-      }),
+    await api.setBanco({
+      p_banco: banco || "",
+      p_tipo_conta: tipo_conta || "",
+      // Atenção: se seu backend esperava o inverso, inverta as próximas 2 linhas
+      p_agencia: agencia || "",
+      p_numero: numconta || "",
+      p_pix: pix || "",
     });
+
+    await loadBancos();
     Swal.fire({
       icon: "success",
       title: "Sucesso",
       text: "Banco inserido com sucesso!",
     });
-    fillBanks();
   } catch (e) {
     Swal.fire({
       icon: "error",
@@ -292,35 +398,31 @@ async function setBanco() {
   }
 }
 
-async function delBanco(evt) {
-  const bt = evt.target.closest(".delBank");
-  if (!bt) return;
+async function onDeleteBanco(e) {
+  const btn = e.target.closest(SEL.BTN_DEL_BANK);
+  if (!btn) return;
 
-  const linha = bt.closest("tr");
-  const nomeBanco = linha?.cells?.[0]?.textContent?.trim();
+  const tr = btn.closest("tr");
+  const nomeBanco = tr?.cells?.[0]?.textContent?.trim();
   if (!nomeBanco) return;
 
-  const result = await Swal.fire({
+  const { isConfirmed } = await Swal.fire({
     icon: "question",
     text: "Deseja excluir banco?",
     confirmButtonText: "Sim",
     denyButtonText: "Não",
     showDenyButton: true,
   });
-  if (!result.isConfirmed) return;
+  if (!isConfirmed) return;
 
   try {
-    await fetchJson(`/setDelBanco`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ p_banco: nomeBanco }),
-    });
+    await api.delBanco({ p_banco: nomeBanco });
+    tr.remove();
     Swal.fire({
       icon: "success",
       title: "Sucesso",
       text: "Banco removido com sucesso!",
     });
-    linha.remove();
   } catch (e) {
     Swal.fire({
       icon: "error",
@@ -333,15 +435,15 @@ async function delBanco(evt) {
 /* =========================
  * Init
  * ========================= */
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   fillStates();
-  CepUtils.attachMask("txt_cep");
-  checkRadios();
-  getDados();
-  fillBanks();
+  CepUtils.attachMask(SEL.IN_CEP);
+  bindTipoClienteRadios();
 
-  EventUtils.addEventToElement("#bt_update", "click", setMeusDados);
-  EventUtils.addEventToElement("#bt_add_bank", "click", setBanco);
-  EventUtils.addEventToElement("#tbody-bank", "click", delBanco);
-  EventUtils.addEventToElement("#txt_cep", "blur", findCep);
+  await Promise.all([loadMeusDados(), loadBancos()]);
+
+  EventUtils.addEventToElement(SEL.BT_ATUALIZAR, "click", onSalvarMeusDados);
+  EventUtils.addEventToElement(SEL.BT_ADD_BANK, "click", onSalvarBanco);
+  EventUtils.addEventToElement(SEL.TBODY_BANCOS, "click", onDeleteBanco);
+  EventUtils.addEventToElement(`#${SEL.IN_CEP}`, "blur", onFindCep);
 });

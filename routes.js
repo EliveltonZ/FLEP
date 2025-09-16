@@ -43,6 +43,7 @@ route.get("/fillTableCustos", orcamentosController.fillTableCustos);
 route.get("/totalOcamentos", orcamentosController.totalOcamentos);
 route.post("/setCustos", orcamentosController.setCustos);
 route.post("/delMaterialAmbiente", orcamentosController.delMaterialAmbiente);
+route.get("/getUltimoOrcamento", orcamentosController.getUltimoOrcamento);
 
 // rotas cadastroMateriais.js
 route.get(
@@ -101,7 +102,8 @@ route.get("/getComissoes", comissoesController.getComissoes);
 route.post("/setComissoes", comissoesController.setComissoes);
 
 // rotas Auth.js
-route.get("/auth/check", AuthController.check); // NOVO
-route.post("auth/logout", AuthController.logout); // opcional
+route.get("/auth/check", AuthController.check);
+route.post("/auth/refresh", AuthController.refresh);
+route.post("/logout", AuthController.logout);
 
 module.exports = route;

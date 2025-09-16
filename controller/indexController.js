@@ -1,10 +1,6 @@
 // controller/indexController.js
 const supabase = require("../client/clientSupabase");
 
-/**
- * Login: autentica no Supabase Auth e grava tokens em cookies httpOnly assinados.
- * Mantém a rota /loginDataBase?p_email=...&p_senha=... igual ao seu front.
- */
 async function loginDataBase(req, res) {
   const { p_email, p_senha } = req.query || {};
   if (!p_email || !p_senha) {

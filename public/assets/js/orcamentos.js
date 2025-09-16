@@ -1,4 +1,8 @@
-// app-orcamentos.js
+// app-orcamentos.js (refatorado)
+
+// =========================
+// Imports
+// =========================
 import {
   EventUtils,
   DomUtils,
@@ -10,34 +14,138 @@ import {
 import Swal from "./sweetalert2.esm.all.min.js";
 import { enableTableFilterSort } from "./filtertable.js";
 
-/* =========================
- * Helpers de DOM
- * ========================= */
+// =========================
+// Constantes / Selectors
+// =========================
+const SEL = {
+  T_ORCAMENTOS: "#table",
+  T_ORCAMENTOS_TBODY: "#table tbody",
+  T_AMBIENTES: "#table-ambientes",
+  T_AMBIENTES_TBODY: "#body-table-ambientes",
+  T_MATERIAIS: "#table_materiais",
+  T_MATERIAIS_TBODY: "#table_materiais tbody",
+  T_CLIENTES: "#table-clientes",
+  T_CLIENTES_TBODY: "#body-table-clientes",
+  T_CUSTOS: "#table-3",
+  T_CUSTOS_TBODY: "#table-3 tbody",
+  T_VALORES: "#table-4",
+  T_VALORES_TBODY: "#table-4 tbody",
+  OP_TIPO_AMBIENTE: "#txt_tipoambiente",
+  OP_TIPO: "#txt_tipo",
+  IN_CODIGO: "#txt_codigo",
+  IN_DESC: "#txt_descricao",
+  IN_PRECO: "#txt_preco",
+  IN_QTD: "#txt_qtd",
+  IN_CUSTO_DESC: "#txt_descricao_c",
+  IN_CUSTO_QTD: "#txt_qtd_c",
+  IN_CUSTO_PRECO: "#txt_preco_c",
+  IN_ENTRADA: "#txt_entrada",
+
+  LB_ID: "lb_id",
+  LB_CPF: "lb_cpf",
+  LB_NOME: "lb_nome",
+
+  TAB_AMBIENTES: 'a[href="#tab-2"]',
+  TAB_MATERIAIS: 'a[href="#tab-3"]',
+  TAB_VALORES: 'a[href="#tab-5"]',
+
+  DIV_CUSTOS: "#div-custos",
+
+  BT_NEW_ORC: "#bt_new_orcamento",
+  BT_NEW_AMB: "#bt_new_ambiente",
+  BT_NEW_ITEM: "#bt_new_material",
+  BT_NEW_CUSTO: "#bt_new_custo",
+  BT_LAST_ORC: "#bt_last_orcament",
+
+  RADIO_TIPO: 'input[name="tipo"]',
+
+  // Radios (fix: sempre com '#')
+  R_CARTAO_CRED: "#radio-cartao-credito",
+  R_FINANCIAMENTO: "#radio-financiamento",
+  R_CARTAO_DEB: "#radio-cartao-debito",
+
+  // Labels totais
+  LB_MATERIAL: "lb_material",
+  LB_MATERIAL_P: "lb_material_p",
+  LB_INSTALACAO: "lb_instalacao",
+  LB_INSTALACAO_P: "lb_instalacao_p",
+  LB_RT: "lb_comissaort",
+  LB_RT_P: "lb_comissaort_p",
+  LB_TOTAL: "lb_total",
+  LB_LUCRO: "lb_lucro",
+  LB_LUCRO_P: "lb_lucro_p",
+  LB_IMPOSTOS: "lb_impostos",
+  LB_IMPOSTOS_P: "lb_impostos_p",
+  LB_TOTAL_JUROS: "lb_totaljuros",
+  LB_TOTAL_PROP: "lb_totalproposta",
+  LB_JUROS: "lb_juros",
+  LB_JUROS_P: "lb_juros_p",
+  LB_VALOR_PARC: "lb_valorparcela",
+
+  LB_ULT_ORC: "lb_ultimo_orcamento",
+  LB_PARC_ORC: "lb_parcela_orcada",
+  LB_TAXA_ORC: "lb_taxa_orcada",
+  LB_TIPO: "lb_tipo",
+
+  TXT_TAXA: "txt_taxa",
+};
+
+// =========================
+// Helpers DOM (mínimos, reusáveis)
+// =========================
 const q = (sel, root = document) => root.querySelector(sel);
 const qa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+// substitua seu helper atual por este
 const el = (tag, props = {}, children = []) => {
   const node = document.createElement(tag);
-  Object.assign(node, props);
-  children.forEach((c) =>
+
+  // tira dataset e style de props para tratar separadamente
+  const { dataset, style, className, ...rest } = props || {};
+
+  // aplica as props "normais"
+  Object.assign(node, rest);
+
+  // className (se veio)
+  if (className) node.className = className;
+
+  // style pode vir string ou objeto
+  if (style) {
+    if (typeof style === "string") {
+      node.setAttribute("style", style);
+    } else if (typeof style === "object") {
+      Object.assign(node.style, style);
+    }
+  }
+
+  // dataset: aplica chave a chave (não pode trocar o objeto inteiro)
+  if (dataset && typeof dataset === "object") {
+    Object.entries(dataset).forEach(([k, v]) => {
+      // dataset usa nomes camelCase -> vira data-kebab-case automaticamente
+      node.dataset[k] = String(v);
+    });
+  }
+
+  // filhos
+  (children || []).forEach((c) =>
     node.appendChild(typeof c === "string" ? document.createTextNode(c) : c)
   );
+
   return node;
 };
-const currencyCell = (value) =>
+
+const tdCenter = (text) =>
+  el("td", { textContent: text, style: "text-align:center" });
+const tdCurrency = (val) =>
   el("td", {
+    textContent: FormatUtils.formatCurrencyBR(val),
     style: "text-align:center",
-    textContent: FormatUtils.formatCurrencyBR(value),
   });
-const centerCell = (value) =>
-  el("td", { style: "text-align:center", textContent: value });
-const html = (s) => {
-  const t = document.createElement("template");
-  t.innerHTML = String(s).trim();
-  return t.content.firstElementChild; // ex.: a <td> gerada
-};
-/* =========================
- * Estado da aplicação
- * ========================= */
+
+const fragment = () => document.createDocumentFragment();
+
+// =========================
+/** Estado da aplicação */
+// =========================
 const AppState = {
   idMarcenaria: null,
   orcamentoAtual: null,
@@ -45,21 +153,21 @@ const AppState = {
   cache: {
     orcamentos: null,
     ambientes: new Map(), // idOrcamento -> array
-    materiaisAmbiente: new Map(), // idAmbiente -> array
-    totais: null, // resultado de /totalOcamentos
+    materiaisAmbiente: new Map(), // idAmbiente  -> array
+    totais: null, // /totalOcamentos (typo?) -> ver comentário em api
     comissoes: null,
   },
 };
 
-/* =========================
- * Fetch wrapper & camada de API
- * ========================= */
+// =========================
+// Fetch wrapper & API
+// =========================
 async function fetchJson(url, options) {
   try {
     const res = await API.apiFetch(url, options);
-
     const ct = res.headers.get("content-type") || "";
     let body;
+
     if (ct.includes("application/json")) {
       body = await res.json();
     } else {
@@ -84,7 +192,8 @@ async function fetchJson(url, options) {
 }
 
 const api = {
-  getOrcamentos: (id) => fetchJson(`/getOrcamentos`),
+  // id não era usado; mantive assinatura simples
+  getOrcamentos: () => fetchJson(`/getOrcamentos`),
 
   setOrcamento: (payload) =>
     fetchJson(`/setOrcamentos`, {
@@ -142,7 +251,7 @@ const api = {
       body: JSON.stringify(payload),
     }),
 
-  // IMPORTANTE: se o endpoint correto for /totalOrcamentos (com "r"), troque aqui.
+  // IMPORTANTE: se o endpoint correto for /totalOrcamentos (com "r"), ajuste aqui.
   getValoresOrcamento: (idOrc) =>
     fetchJson(`/totalOcamentos?p_id_orcamento=${encodeURIComponent(idOrc)}`),
 
@@ -155,140 +264,177 @@ const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }),
+
+  // fix: adiciona "/" e encode
+  getUltimoOrcamento: (id_orcamento) =>
+    fetchJson(
+      `/getUltimoOrcamento?p_id_orcamento=${encodeURIComponent(id_orcamento)}`
+    ),
 };
 
-function createButton(_class) {
-  return `
-    <td style="text-align: center" >
-      <button class="btn bt-color ${_class}" type="button" style="padding: 0;height: 17px;font-size: 10px;width: 30px;">
-        <i class="icon ion-social-usd"></i>
-      </button>
-    </td>
-  `;
-}
-
-/* =========================
- * Renderizadores puros
- * ========================= */
+// =========================
+// Renderizadores (puros)
+// =========================
 function renderOrcamentosTable(items) {
-  const tbody = q("#table tbody");
+  const tbody = q(SEL.T_ORCAMENTOS_TBODY);
   tbody.innerHTML = "";
+  const frag = fragment();
+
   for (const it of items) {
-    const tr = el("tr", {}, [
-      centerCell(it.p_orcamento),
-      el("td", { textContent: it.p_nome }),
-      centerCell(it.p_ambientes),
-      centerCell(it.p_status),
-      centerCell(DateUtils.toBR(it.p_data)),
+    const tr = el(
+      "tr",
+      {
+        dataset: { orcamento: it.p_orcamento },
+        // classe para destacar seleção via CSS
+        className: "",
+      },
+      [
+        tdCenter(it.p_orcamento),
+        el("td", { textContent: it.p_nome }),
+        tdCenter(it.p_ambientes),
+        tdCenter(it.p_status),
+        tdCenter(DateUtils.toBR(it.p_data)),
+      ]
+    );
+
+    // botão de valores (mantém compat. com seu código)
+    const tdBtn = el("td", { style: "text-align:center" }, [
+      el("button", {
+        className: "btn bt-color order",
+        type: "button",
+        style: "padding:0;height:17px;font-size:10px;width:30px;",
+        title: "Ver valores",
+        innerHTML: '<i class="icon ion-social-usd"></i>',
+      }),
     ]);
-    tr.innerHTML += createButton("order");
-    tbody.appendChild(tr);
+    tr.appendChild(tdBtn);
+
+    frag.appendChild(tr);
   }
+  tbody.appendChild(frag);
 }
 
 function renderAmbientesTable(items) {
-  const tbody = q("#body-table-ambientes");
+  const tbody = q(SEL.T_AMBIENTES_TBODY);
   tbody.innerHTML = "";
+  const frag = fragment();
+
   for (const it of items) {
-    const tr = el("tr", {}, [
-      centerCell(it.id_ambiente),
+    const tr = el("tr", { dataset: { ambiente: it.id_ambiente } }, [
+      tdCenter(it.id_ambiente),
       el("td", { textContent: it.categoria }),
       el("td", { textContent: it.p_descricao }),
     ]);
-    tbody.appendChild(tr);
+    frag.appendChild(tr);
   }
+  tbody.appendChild(frag);
 }
 
 function renderMateriaisAmbienteTable(items) {
   const tbody = q("#body-table-materiais");
   tbody.innerHTML = "";
+  const frag = fragment();
+
   for (const it of items) {
     const tr = el("tr", {}, [
-      centerCell(it.p_material),
+      tdCenter(it.p_material),
       el("td", { textContent: it.p_descricao }),
-      centerCell(it.p_quantidade),
-      centerCell(Number(it.p_preco).toFixed(2)),
-      centerCell(Number(it.p_total).toFixed(2)),
+      tdCenter(it.p_quantidade),
+      tdCenter(Number(it.p_preco).toFixed(2)),
+      tdCenter(Number(it.p_total).toFixed(2)),
     ]);
-    const td = document.createElement("td");
-    td.style.textAlign = "center";
+    const td = el("td", { style: "text-align:center" });
     td.innerHTML = TableUtils.insertDeleteButtonCell("delRow");
     tr.appendChild(td);
-    tbody.appendChild(tr);
+    frag.appendChild(tr);
   }
+
+  tbody.appendChild(frag);
 }
 
 function renderMateriaisTable(items) {
-  const tbody = q("#table_materiais tbody");
+  const tbody = q(SEL.T_MATERIAIS_TBODY);
   tbody.innerHTML = "";
+  const frag = fragment();
+
   for (const it of items) {
     const tr = el("tr", {}, [
-      centerCell(it.p_id_material),
+      tdCenter(it.p_id_material),
       el("td", { textContent: it.p_descricao }),
-      centerCell(it.p_unidade),
-      centerCell(FormatUtils.formatCurrencyBR(it.p_preco)),
+      tdCenter(it.p_unidade),
+      tdCenter(FormatUtils.formatCurrencyBR(it.p_preco)),
     ]);
-    tbody.appendChild(tr);
+    frag.appendChild(tr);
   }
+
+  tbody.appendChild(frag);
 }
 
 function renderClientesTable(items) {
-  const tbody = q("#body-table-clientes");
+  const tbody = q(SEL.T_CLIENTES_TBODY);
   tbody.innerHTML = "";
+  const frag = fragment();
+
   for (const it of items) {
     const tr = el("tr", {}, [
-      centerCell(it.p_id_cliente),
+      tdCenter(it.p_id_cliente),
       el("td", { textContent: formatCPF(it.p_cpf) }),
       el("td", { textContent: it.p_nome }),
     ]);
-    tbody.appendChild(tr);
+    frag.appendChild(tr);
   }
+
+  tbody.appendChild(frag);
 }
 
 function renderCustosTable(items) {
-  const tbody = q("#table-3 tbody");
+  const tbody = q(SEL.T_CUSTOS_TBODY);
   tbody.innerHTML = "";
+  const frag = fragment();
+
   for (const it of items) {
     const tr = el("tr", {}, [
       el("td", { textContent: it.p_descricao }),
-      centerCell(it.p_quatidade),
-      currencyCell(it.p_preco),
-      currencyCell(it.p_total),
+      tdCenter(it.p_quatidade),
+      tdCurrency(it.p_preco),
+      tdCurrency(it.p_total),
     ]);
-    tbody.appendChild(tr);
+    frag.appendChild(tr);
   }
+
+  tbody.appendChild(frag);
 }
 
 function renderAmbientesValoresTable(items) {
   const list = Array.isArray(items) ? items : [];
-  const tbody = document.querySelector("#table-4 tbody");
+  const tbody = q(SEL.T_VALORES_TBODY);
   tbody.innerHTML = "";
+  const frag = fragment();
 
   list.forEach((it, index) => {
-    const tr = document.createElement("tr");
+    const tr = el("tr", { dataset: { index } }, []);
 
-    const tdChk = document.createElement("td");
-    const chk = document.createElement("input");
-    chk.type = "checkbox";
-    chk.className = "chk-selecao";
+    const tdChk = el("td");
+    const chk = el("input", { type: "checkbox", className: "chk-selecao" });
     chk.dataset.index = String(index);
     tdChk.appendChild(chk);
 
-    const tdId = document.createElement("td");
-    tdId.textContent = it.p_id_ambiente;
-    const tdDes = document.createElement("td");
-    tdDes.textContent = it.p_descricao;
-    const tdTot = document.createElement("td");
-    tdTot.textContent = FormatUtils.formatCurrencyBR(it.p_total);
+    const tdId = el("td", { textContent: it.p_id_ambiente });
+    const tdDes = el("td", { textContent: it.p_descricao });
+    const tdTot = el("td", {
+      textContent: FormatUtils.formatCurrencyBR(it.p_total),
+    });
 
     tr.append(tdChk, tdId, tdDes, tdTot);
-    tbody.appendChild(tr);
+    frag.appendChild(tr);
   });
+
+  tbody.appendChild(frag);
 }
 
-/* =========================
- * Cálculos e utilitários
- * ========================= */
+// =========================
+// Cálculos & utils
+// =========================
 export function formatCPF(cpf = "") {
   const A = cpf.slice(0, 3);
   const B = cpf.slice(3, 6);
@@ -297,57 +443,65 @@ export function formatCPF(cpf = "") {
   return `${A}.${B}.${C}-${D}`;
 }
 
-function toNumber(value) {
+const toNumber = (value) => {
   if (value == null) return 0;
   return parseFloat(String(value).replace(",", ".")) || 0;
-}
-function floatValue(value) {
-  const num = parseFloat(value);
-  if (isNaN(num)) return 0;
-  return parseFloat(num.toFixed(2));
-}
+};
+const round2 = (n) => {
+  const num = Number(n);
+  return Number.isFinite(num) ? Number(num.toFixed(2)) : 0;
+};
 
 function computeTotals({ selecionados, entradaReais, taxaPercent }) {
-  var totals = {
+  // base de totais
+  const totals = {
     material: 0,
     instalacao: 0,
     rt: 0,
     aVista: 0,
-    imposto: 0,
-    lucro: 0,
+    imposto: 0, // fração (0..1)
+    lucro: 0, // fração (0..1)
+    percentRt: 0,
   };
 
-  AppState.cache.comissoes.forEach((item) => {
-    if (item.p_descricao.toLowerCase() == "comissão/rt") {
-      totals.percentRt = item.p_valor;
-    }
-    const key = (item.p_descricao || "").toLowerCase();
-    totals[key] = 0;
+  // mapeia comissões -> inicia acumuladores
+  const comissoes = AppState.cache.comissoes || [];
+  comissoes.forEach((c) => {
+    const key = (c.p_descricao || "").toLowerCase();
+    if (key === "comissão/rt") totals.percentRt = c.p_valor;
+    else totals[key] = 0;
   });
 
-  for (var item of selecionados) {
-    var ambiente = item.p_ambiente;
+  // acumula itens selecionados
+  for (const item of selecionados) {
+    const ambiente = item.p_ambiente;
+
     totals.material += item.p_material;
     totals.instalacao += item.p_instalacao;
     totals.rt += item.p_valor_rt;
+
+    // assume p_imp e p_luc são iguais entre itens; se não, pode considerar média ponderada
     totals.imposto = item.p_imp;
     totals.lucro = item.p_luc;
+
     totals.aVista += item.p_total;
-    AppState.cache.comissoes.forEach((item) => {
-      if (item.p_descricao.toLowerCase() == "comissão/rt") return;
-      const key = (item.p_descricao || "").toLowerCase();
-      totals[key] += ambiente * (item.p_valor / 100);
-    });
+
+    for (const c of comissoes) {
+      const key = (c.p_descricao || "").toLowerCase();
+      if (key === "comissão/rt") continue;
+      totals[key] = (totals[key] || 0) + ambiente * (c.p_valor / 100);
+    }
   }
 
-  const taxa = taxaPercent / 100;
-  const entrada = totals.aVista - entradaReais;
+  const taxa = (taxaPercent || 0) / 100;
+  const entrada = totals.aVista - (entradaReais || 0);
 
+  // Fórmulas originais preservadas
   const comEntrada =
     (entrada * (1 - totals.imposto - totals.lucro)) /
     (1 - totals.imposto - totals.lucro - taxa);
 
-  const total = comEntrada + entradaReais;
+  const total = comEntrada + (entradaReais || 0);
 
   const comTaxa =
     (totals.aVista * (1 - totals.imposto - totals.lucro)) /
@@ -360,23 +514,27 @@ async function loadComissoes() {
   AppState.cache.comissoes = await api.getComissoes();
 }
 
-function createElementComissao(name, id_label, percent, value) {
+// =========================
+// UI de comissões e totais
+// =========================
+function comissaoRowTemplate(name, id_label, percent, value) {
   return `
-  <div class="justify-content-between" style="display: flex;gap: 20px;margin-bottom: 10px;">
-    <label class="form-label" style="width: 40%;">${name}:</label>
-    <label id="lb_${id_label}_p" class="form-label">${percent}%</label>
-    <label id="lb_${id_label}" class="form-label">${FormatUtils.formatCurrencyBR(
+    <div class="justify-content-between" style="display:flex;gap:20px;margin-bottom:10px;">
+      <label class="form-label" style="width:40%;">${name}:</label>
+      <label id="lb_${id_label}_p" class="form-label">${percent}%</label>
+      <label id="lb_${id_label}" class="form-label">${FormatUtils.formatCurrencyBR(
     value
   )}</label>
-  </div>
+    </div>
   `;
 }
 
 function renderComissoes() {
-  const div = document.querySelector("#div-custos");
-  AppState.cache.comissoes.forEach((item) => {
-    if (item.p_descricao.toLowerCase() == "comissão/rt") return;
-    div.innerHTML += createElementComissao(
+  const div = q(SEL.DIV_CUSTOS);
+  div.innerHTML = "";
+  (AppState.cache.comissoes || []).forEach((item) => {
+    if ((item.p_descricao || "").toLowerCase() === "comissão/rt") return;
+    div.innerHTML += comissaoRowTemplate(
       item.p_descricao,
       item.p_descricao.toLowerCase(),
       0,
@@ -387,97 +545,98 @@ function renderComissoes() {
 
 function applyTotalsToUI(calc) {
   const { totals, total, taxa, comEntrada, comTaxa } = calc;
-  const percentOfComTaxa = (value) =>
-    FormatUtils.formatPercentBR(floatValue((value / comTaxa) * 100));
+  const pctOfComTaxa = (v) =>
+    FormatUtils.formatPercentBR(round2((v / comTaxa) * 100));
 
+  // materiais
   DomUtils.setInnerHtml(
-    "lb_material",
+    SEL.LB_MATERIAL,
     FormatUtils.formatCurrencyBR(totals.material)
   );
   DomUtils.setInnerHtml(
-    "lb_material_p",
+    SEL.LB_MATERIAL_P,
     FormatUtils.formatPercentBR(toNumber((totals.material / total) * 100))
   );
 
+  // instalação
   DomUtils.setInnerHtml(
-    "lb_instalacao",
+    SEL.LB_INSTALACAO,
     FormatUtils.formatCurrencyBR(totals.instalacao)
   );
-  DomUtils.setInnerHtml("lb_instalacao_p", percentOfComTaxa(totals.instalacao));
+  DomUtils.setInnerHtml(SEL.LB_INSTALACAO_P, pctOfComTaxa(totals.instalacao));
 
-  AppState.cache.comissoes.forEach((item) => {
+  // comissões dinâmicas
+  (AppState.cache.comissoes || []).forEach((item) => {
+    const key = (item.p_descricao || "").toLowerCase();
     DomUtils.setInnerHtml(
-      `lb_${item.p_descricao.toLowerCase()}`,
-      FormatUtils.formatCurrencyBR(totals[item.p_descricao.toLowerCase()])
+      `lb_${key}`,
+      FormatUtils.formatCurrencyBR(totals[key])
     );
-
     DomUtils.setInnerHtml(
-      `lb_${item.p_descricao.toLowerCase()}_p`,
+      `lb_${key}_p`,
       FormatUtils.formatPercentBR(item.p_valor)
     );
   });
 
+  // comissão RT
+  DomUtils.setInnerHtml(SEL.LB_RT, FormatUtils.formatCurrencyBR(totals.rt));
   DomUtils.setInnerHtml(
-    "lb_comissaort",
-    FormatUtils.formatCurrencyBR(totals.rt)
-  );
-  DomUtils.setInnerHtml(
-    "lb_comissaort_p",
+    SEL.LB_RT_P,
     FormatUtils.formatPercentBR(totals.percentRt)
   );
 
+  // totais
   DomUtils.setInnerHtml(
-    "lb_total",
+    SEL.LB_TOTAL,
     FormatUtils.formatCurrencyBR(totals.aVista)
   );
-
   DomUtils.setInnerHtml(
-    "lb_lucro",
+    SEL.LB_LUCRO,
     FormatUtils.formatCurrencyBR(total * totals.lucro)
   );
   DomUtils.setInnerHtml(
-    "lb_lucro_p",
+    SEL.LB_LUCRO_P,
     FormatUtils.formatPercentBR(totals.lucro * 100)
   );
   DomUtils.setInnerHtml(
-    "lb_impostos",
+    SEL.LB_IMPOSTOS,
     FormatUtils.formatCurrencyBR(total * totals.imposto)
   );
   DomUtils.setInnerHtml(
-    "lb_totaljuros",
+    SEL.LB_TOTAL_JUROS,
     FormatUtils.formatCurrencyBR(comEntrada)
   );
+  DomUtils.setInnerHtml(SEL.LB_TOTAL_PROP, FormatUtils.formatCurrencyBR(total));
   DomUtils.setInnerHtml(
-    "lb_totalproposta",
-    FormatUtils.formatCurrencyBR(total)
+    SEL.LB_IMPOSTOS_P,
+    FormatUtils.formatPercentBR(round2(totals.imposto * 100))
   );
   DomUtils.setInnerHtml(
-    "lb_impostos_p",
-    FormatUtils.formatPercentBR(floatValue(totals.imposto * 100))
-  );
-  DomUtils.setInnerHtml(
-    "lb_juros",
+    SEL.LB_JUROS,
     FormatUtils.formatCurrencyBR(comEntrada * taxa)
   );
-  DomUtils.setInnerHtml("lb_juros_p", FormatUtils.formatPercentBR(taxa * 100));
-
-  const parcelas = toNumber(DomUtils.getSelectedOptionText("#txt_tipo"));
   DomUtils.setInnerHtml(
-    "lb_valorparcela",
+    SEL.LB_JUROS_P,
+    FormatUtils.formatPercentBR(taxa * 100)
+  );
+
+  const parcelas = toNumber(DomUtils.getSelectedOptionText(SEL.OP_TIPO));
+  DomUtils.setInnerHtml(
+    SEL.LB_VALOR_PARC,
     FormatUtils.formatCurrencyBR(parcelas ? comEntrada / parcelas : 0)
   );
 }
 
-/* =========================
- * Handlers
- * ========================= */
+// =========================
+// Handlers (controladores)
+// =========================
 async function onRowDblClickOrcamentos(e) {
   const row = e.target.closest("tr");
-  if (!row || !row.cells?.length) return;
+  if (!row?.cells?.length) return;
 
-  document
-    .querySelectorAll("#table tbody tr")
-    .forEach((tr) => tr.classList.remove("table-click-row"));
+  qa(`${SEL.T_ORCAMENTOS_TBODY} tr`).forEach((tr) =>
+    tr.classList.remove("table-click-row")
+  );
   row.classList.add("table-click-row");
 
   const idOrc = row.cells[0].textContent.trim();
@@ -487,21 +646,20 @@ async function onRowDblClickOrcamentos(e) {
   try {
     await loadAmbientes(idOrc);
     await loadCustos();
-
-    const trigger = document.querySelector('a[href="#tab-2"]');
+    const trigger = q(SEL.TAB_AMBIENTES);
     if (trigger) bootstrap.Tab.getOrCreateInstance(trigger).show();
   } catch (err) {
-    console.error("onRowDblClickOrcamentos erro:", err);
+    console.error("onRowDblClickOrcamentos:", err);
   }
 }
 
 async function onRowDblClickAmbientes(e) {
   const row = e.target.closest("tr");
-  if (!row || !row.cells?.length) return;
+  if (!row?.cells?.length) return;
 
-  document
-    .querySelectorAll("#table-ambientes tbody tr")
-    .forEach((tr) => tr.classList.remove("table-click-row"));
+  qa(`${SEL.T_AMBIENTES} tbody tr`).forEach((tr) =>
+    tr.classList.remove("table-click-row")
+  );
   row.classList.add("table-click-row");
 
   const idAmbiente = row.cells[0].textContent.trim();
@@ -510,7 +668,7 @@ async function onRowDblClickAmbientes(e) {
 
   await loadMateriaisAmbiente(idAmbiente);
 
-  const trigger = document.querySelector('a[href="#tab-3"]');
+  const trigger = q(SEL.TAB_MATERIAIS);
   if (trigger) bootstrap.Tab.getOrCreateInstance(trigger).show();
 }
 
@@ -518,17 +676,13 @@ function onClickCliente(e) {
   const row = e.target.closest("tr");
   if (!row) return;
 
-  const id = row.cells[0]?.textContent.trim() ?? "";
-  const cpf = row.cells[1]?.textContent.trim() ?? "";
-  const nome = row.cells[2]?.textContent.trim() ?? "";
-
-  DomUtils.setInnerHtml("lb_id", id);
-  DomUtils.setInnerHtml("lb_cpf", cpf);
-  DomUtils.setInnerHtml("lb_nome", nome);
+  DomUtils.setInnerHtml(SEL.LB_ID, row.cells[0]?.textContent.trim() ?? "");
+  DomUtils.setInnerHtml(SEL.LB_CPF, row.cells[1]?.textContent.trim() ?? "");
+  DomUtils.setInnerHtml(SEL.LB_NOME, row.cells[2]?.textContent.trim() ?? "");
 }
 
 async function onConfirmGerarOrcamento() {
-  const nome = DomUtils.getInnerHtml("lb_nome") || "o cliente selecionado";
+  const nome = DomUtils.getInnerHtml(SEL.LB_NOME) || "o cliente selecionado";
   const result = await Swal.fire({
     icon: "question",
     title: "Orçamentos",
@@ -537,20 +691,17 @@ async function onConfirmGerarOrcamento() {
     denyButtonText: "Cancelar",
     confirmButtonText: "Confirmar",
   });
-
   if (!result.isConfirmed) return;
 
   try {
-    await api.setOrcamento({
-      p_id_cliente: DomUtils.getInnerHtml("lb_id"),
-    });
+    await api.setOrcamento({ p_id_cliente: DomUtils.getInnerHtml(SEL.LB_ID) });
     await loadOrcamentos();
     Swal.fire({
       icon: "success",
       title: "SUCESSO",
       text: "Orçamento gerado com sucesso!",
     });
-  } catch (err) {
+  } catch {
     Swal.fire({
       icon: "error",
       title: "ERRO",
@@ -567,10 +718,11 @@ async function onConfirmSetAmbiente() {
     Swal.fire({
       icon: "warning",
       title: "Atenção",
-      text: "Preencha os campos obrigatorios",
+      text: "Preencha os campos obrigatórios",
     });
     return;
   }
+
   const result = await Swal.fire({
     icon: "question",
     text: "Deseja inserir novo ambiente?",
@@ -592,18 +744,19 @@ async function onConfirmSetAmbiente() {
       title: "SUCESSO",
       text: "Ambiente inserido com sucesso!",
     });
-  } catch (err) {
+  } catch {
     Swal.fire({
       icon: "error",
       title: "Erro",
-      text: `Não foi possível inserir ambiente.`,
+      text: "Não foi possível inserir ambiente.",
     });
   }
 }
 
 function onClickMaterialLinha(e) {
   const row = e.target.closest("tr");
-  if (!row || !row.cells?.length) return;
+  if (!row?.cells?.length) return;
+
   DomUtils.setText("txt_codigo", row.cells[0].textContent.trim());
   DomUtils.setText("txt_descricao", row.cells[1].textContent.trim());
   DomUtils.setText("txt_preco", row.cells[3].textContent.trim());
@@ -634,7 +787,7 @@ async function onConfirmInserirMaterialAmbiente() {
       title: "SUCESSO",
       text: "Item lançado com sucesso!",
     });
-  } catch (err) {
+  } catch {
     Swal.fire({
       icon: "error",
       title: "ERRO",
@@ -666,16 +819,16 @@ async function onConfirmInserirCusto() {
       title: "Sucesso",
       text: "Custo lançado com sucesso!",
     });
-  } catch (err) {
+  } catch {
     Swal.fire({ icon: "error", title: "ERRO", text: "Erro ao inserir custo." });
   }
 }
 
-async function delRow(button) {
-  const bt = button.target.closest(".delRow");
-  const idItem = bt.closest("tr").cells[0].textContent.trim();
+async function onDelMaterialAmbiente(buttonEvt) {
+  const bt = buttonEvt.target.closest(".delRow");
   if (!bt) return;
 
+  const idItem = bt.closest("tr").cells[0].textContent.trim();
   const payload = {
     p_id_orcamento: AppState.orcamentoAtual,
     p_id_ambiente: AppState.idAmbiente,
@@ -685,12 +838,11 @@ async function delRow(button) {
   const result = await Swal.fire({
     icon: "question",
     title: "Excluir",
-    text: "Deletar item do Pedido ?",
+    text: "Deletar item do Pedido?",
     denyButtonText: "Cancelar",
     showDenyButton: true,
     confirmButtonText: "Confirmar",
   });
-
   if (!result.isConfirmed) return;
 
   try {
@@ -699,40 +851,114 @@ async function delRow(button) {
     Swal.fire({
       icon: "success",
       title: "SUCESSO",
-      text: `Item excluido com Sucesso !!!`,
+      text: "Item excluído com sucesso!",
     });
   } catch (erro) {
-    Swal.fire({
-      icon: "error",
-      title: "ERRO",
-      text: `ERRO: ${erro.message}`,
-    });
+    Swal.fire({ icon: "error", title: "ERRO", text: `ERRO: ${erro.message}` });
   }
 }
 
 async function onChangeTipoParcelamento() {
   const taxa = DomUtils.getText("txt_tipo");
-  DomUtils.setInnerHtml("txt_taxa", FormatUtils.formatPercentBR(taxa));
+  DomUtils.setInnerHtml(SEL.TXT_TAXA, FormatUtils.formatPercentBR(taxa));
   await atualizarTotaisUI();
 }
+const onChangeEntrada = () => atualizarTotaisUI();
 
-async function onChangeEntrada() {
+async function onOrderValuesClick(e) {
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  const idOrc = tr.cells[0].textContent.trim();
+
+  await loadAmbientesValores(idOrc);
+
+  const trigger = q(SEL.TAB_VALORES);
+  if (trigger) bootstrap.Tab.getOrCreateInstance(trigger).show();
+
   await atualizarTotaisUI();
+
+  const lastValues = await api.getUltimoOrcamento(idOrc);
+  if (Array.isArray(lastValues) && lastValues[0]) handleLastOrc(lastValues[0]);
 }
 
-/* =========================
- * Loaders com cache leve
- * ========================= */
+async function handleLastOrc(data) {
+  DomUtils.setInnerHtml(
+    SEL.LB_ULT_ORC,
+    FormatUtils.formatCurrencyBR(data.p_ultimo_orcamento)
+  );
+  DomUtils.setInnerHtml(SEL.LB_PARC_ORC, data.p_num_parcelas);
+  DomUtils.setInnerHtml(
+    SEL.LB_TAXA_ORC,
+    FormatUtils.formatPercentBR(data.p_taxa_orcada)
+  );
+  setRadioTax(data.p_tipo_taxa);
+  DomUtils.setInnerHtml(SEL.LB_TIPO, typeTax(data.p_tipo_taxa));
+  bindParcelamentoRadios(); // ok chamar aqui se depender do tipo carregado
+}
+
+// =========================
+// Totais (UI)
+// =========================
+async function atualizarTotaisUI() {
+  const data = AppState.cache.totais || [];
+  const selecionados = qa(`${SEL.T_VALORES_TBODY} input[type="checkbox"]`)
+    .filter((chk) => chk.checked)
+    .map((chk) => data[Number(chk.dataset.index)]);
+
+  const entradaReais = toNumber(DomUtils.getText("txt_entrada"));
+  const taxaPercent = toNumber(DomUtils.getText("txt_tipo"));
+
+  const calc = computeTotals({ selecionados, entradaReais, taxaPercent });
+  applyTotalsToUI(calc);
+}
+
+// =========================
+// Radios (parcelamento) + setRadioTax
+// =========================
+function bindParcelamentoRadios() {
+  // delegação segura
+  qa(SEL.RADIO_TIPO).forEach((radio) => {
+    radio.addEventListener("change", () => loadTaxasParcelamento(radio.value));
+    if (radio.checked) loadTaxasParcelamento(radio.value);
+  });
+}
+
+function typeTax(value) {
+  if (value === "C") return "Crédito";
+  if (value === "F") return "Financiamento";
+  return "Débito";
+}
+
+function setRadioTax(value) {
+  const v = String(value || "")
+    .trim()
+    .toUpperCase();
+  const map = {
+    C: SEL.R_CARTAO_CRED,
+    F: SEL.R_FINANCIAMENTO,
+    D: SEL.R_CARTAO_DEB,
+  };
+  const sel = map[v] || map.D;
+  // desmarca todos (caso setChecked não force comportamento de radio)
+  [SEL.R_CARTAO_CRED, SEL.R_FINANCIAMENTO, SEL.R_CARTAO_DEB].forEach((s) =>
+    DomUtils.setChecked(s, false)
+  );
+  DomUtils.setChecked(sel, true);
+}
+
+// =========================
+// Loaders com cache leve
+// =========================
 async function loadOrcamentos() {
   try {
     const data = await api.getOrcamentos();
     AppState.cache.orcamentos = data;
     renderOrcamentosTable(data);
-  } catch {
+  } catch (err) {
     Swal.fire({
       icon: "error",
       title: "ERRO",
-      text: "Não foi possível carregar orçamentos.",
+      text: `Não foi possível carregar orçamentos. ${err.message}`,
     });
   }
 }
@@ -794,14 +1020,15 @@ async function loadClientes() {
 async function loadCategoriasAmbientes() {
   try {
     const data = await api.getCategoriasAmbientes();
-    const select = q("#txt_tipoambiente");
+    const select = q(SEL.OP_TIPO_AMBIENTE);
     select.innerHTML = `<option value="">Selecione o Tipo</option>`;
     data.forEach((item) => {
-      const option = el("option", {
-        value: item.p_id_categoria,
-        textContent: item.p_categoria,
-      });
-      select.appendChild(option);
+      select.appendChild(
+        el("option", {
+          value: item.p_id_categoria,
+          textContent: item.p_categoria,
+        })
+      );
     });
   } catch {
     Swal.fire({
@@ -827,30 +1054,30 @@ async function loadCustos() {
 
 async function loadTaxasParcelamento(tipo) {
   try {
-    var data = [];
-    if (tipo == "D") {
-      data = [{ p_qtd_parcela: 1, p_taxa: 0 }];
-    } else {
-      data = await api.getTaxasParcelamentos(tipo);
-    }
+    let data = [];
+    if (tipo === "D") data = [{ p_qtd_parcela: 1, p_taxa: 0 }];
+    else data = await api.getTaxasParcelamentos(tipo);
 
-    const select = q("#txt_tipo");
+    const select = q(SEL.OP_TIPO);
     select.innerHTML = "";
     data.forEach((item) => {
-      const opt = el("option", {
-        value: item.p_taxa,
-        textContent: item.p_qtd_parcela,
-      });
-      select.appendChild(opt);
+      select.appendChild(
+        el("option", {
+          value: item.p_taxa,
+          textContent: item.p_qtd_parcela,
+        })
+      );
     });
     await onChangeTipoParcelamento();
-  } catch (err) {}
+  } catch (err) {
+    console.warn("loadTaxasParcelamento:", err);
+  }
 }
 
 async function loadAmbientesValores(idOrc) {
   try {
     if (!idOrc) {
-      console.warn("Guards: idMarcenaria/orcamentoAtual ausentes", AppState);
+      console.warn("Guards: orcamentoAtual ausente", AppState);
       Swal.fire({
         icon: "warning",
         title: "Atenção",
@@ -869,11 +1096,13 @@ async function loadAmbientesValores(idOrc) {
 
     AppState.cache.totais = data;
     renderAmbientesValoresTable(data);
-    document
-      .querySelectorAll(".chk-selecao")
-      .forEach((chk) => chk.addEventListener("change", atualizarTotaisUI));
+
+    // delegação já cobre, mas se quiser listeners diretos:
+    qa(".chk-selecao").forEach((chk) =>
+      chk.addEventListener("change", atualizarTotaisUI)
+    );
   } catch (err) {
-    console.error("loadAmbientesValores erro:", err);
+    console.error("loadAmbientesValores:", err);
     Swal.fire({
       icon: "error",
       title: "Erro",
@@ -884,59 +1113,22 @@ async function loadAmbientesValores(idOrc) {
   }
 }
 
-/* =========================
- * Totais (UI)
- * ========================= */
-
-async function atualizarTotaisUI() {
-  const data = AppState.cache.totais || [];
-  const selecionados = qa('#table-4 tbody input[type="checkbox"]')
-    .filter((chk) => chk.checked)
-    .map((chk) => data[Number(chk.dataset.index)]);
-
-  const entradaReais = toNumber(DomUtils.getText("txt_entrada"));
-  const taxaPercent = toNumber(DomUtils.getText("txt_tipo"));
-
-  const calc = computeTotals({ selecionados, entradaReais, taxaPercent });
-  applyTotalsToUI(calc);
-}
-
-/* =========================
- * Radios (parcelamento)
- * ========================= */
-function bindParcelamentoRadios() {
-  const radios = qa('input[name="tipo"]');
-  radios.forEach((radio) => {
-    radio.addEventListener("change", () => loadTaxasParcelamento(radio.value));
-    if (radio.checked) loadTaxasParcelamento(radio.value);
-  });
-}
-
-async function getValuesOrder(e) {
-  const tr = e.target.closest("tr");
-  const idOrc = tr.cells[0].textContent.trim();
-  await loadAmbientesValores(idOrc);
-  const trigger = document.querySelector('a[href="#tab-5"]');
-  if (trigger) bootstrap.Tab.getOrCreateInstance(trigger).show();
-  atualizarTotaisUI();
-}
-
-/* =========================
- * Inicialização
- * ========================= */
+// =========================
+// Inicialização
+// =========================
 document.addEventListener("DOMContentLoaded", async () => {
   // reset de seleção
   localStorage.removeItem("orcamento");
   localStorage.removeItem("ambiente");
 
-  // carregamento inicial
+  // carregamento inicial (em paralelo)
   await Promise.all([
     loadComissoes(),
     loadOrcamentos(),
     loadCategoriasAmbientes(),
     loadClientes(),
     loadMateriais(),
-    bindParcelamentoRadios(),
+    // bind após radios existirem
   ]);
 
   // efeitos e filtros
@@ -948,41 +1140,57 @@ document.addEventListener("DOMContentLoaded", async () => {
   enableTableFilterSort("table_materiais");
   EventUtils.enableEnterAsTab?.();
 
-  // eventos (delegação e botões)
-  EventUtils.addEventToElement("#table", "dblclick", onRowDblClickOrcamentos);
+  // Delegação de eventos (mais robusto para linhas dinâmicas)
   EventUtils.addEventToElement(
-    "#table-ambientes",
+    SEL.T_ORCAMENTOS_TBODY,
+    "dblclick",
+    onRowDblClickOrcamentos
+  );
+  EventUtils.addEventToElement(
+    SEL.T_AMBIENTES,
     "dblclick",
     onRowDblClickAmbientes
   );
   EventUtils.addEventToElement(
-    "#table_materiais tbody",
+    SEL.T_MATERIAIS_TBODY,
     "click",
     onClickMaterialLinha
   );
-  EventUtils.addEventToElement("#table-clientes", "click", onClickCliente);
-  EventUtils.addEventToElement(".order", "click", getValuesOrder);
+  EventUtils.addEventToElement(SEL.T_CLIENTES, "click", onClickCliente);
+  EventUtils.addEventToElement(SEL.T_ORCAMENTOS_TBODY, "click", (e) => {
+    if (e.target.closest(".order")) onOrderValuesClick(e);
+  });
 
   EventUtils.addEventToElement(
-    "#bt_new_orcamento",
+    SEL.BT_NEW_ORC,
     "click",
     onConfirmGerarOrcamento
   );
+  EventUtils.addEventToElement(SEL.BT_NEW_AMB, "click", onConfirmSetAmbiente);
   EventUtils.addEventToElement(
-    "#bt_new_ambiente",
-    "click",
-    onConfirmSetAmbiente
-  );
-  EventUtils.addEventToElement(
-    "#bt_new_material",
+    SEL.BT_NEW_ITEM,
     "click",
     onConfirmInserirMaterialAmbiente
   );
-  EventUtils.addEventToElement("#table-2 tbody", "click", delRow);
-  EventUtils.addEventToElement("#bt_new_custo", "click", onConfirmInserirCusto);
-  EventUtils.addEventToElement("#txt_tipo", "change", onChangeTipoParcelamento);
-  EventUtils.addEventToElement("#txt_entrada", "input", onChangeEntrada);
+  EventUtils.addEventToElement(
+    "#table-2 tbody",
+    "click",
+    onDelMaterialAmbiente
+  );
+  EventUtils.addEventToElement(
+    SEL.BT_NEW_CUSTO,
+    "click",
+    onConfirmInserirCusto
+  );
+  EventUtils.addEventToElement(SEL.OP_TIPO, "change", onChangeTipoParcelamento);
+  EventUtils.addEventToElement(SEL.IN_ENTRADA, "input", onChangeEntrada);
+  EventUtils.addEventToElement(SEL.BT_LAST_ORC, "click", () =>
+    TableUtils.logNumerosMarcados(SEL.T_VALORES, console.log)
+  );
 
-  // radios
+  // radios de parcelamento
+  bindParcelamentoRadios();
+
+  // comissões
   renderComissoes();
 });

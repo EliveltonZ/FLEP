@@ -1,4 +1,4 @@
-// clients-addresses.js
+// clients-addresses.js (refatorado)
 import {
   DomUtils,
   EventUtils,
@@ -12,19 +12,36 @@ import { enableTableFilterSort } from "./filtertable.js";
 /* ================================
    Constantes & helpers
 ================================ */
+const SEL = {
+  // tabelas
+  TBODY_CLIENTS: "#ctable tbody",
+  TBODY_ADDRS: "#etable tbody",
+  TABLE_CLIENTS: "#ctable",
+  TABLE_ADDRS: "#etable",
 
-const SELECTORS = {
-  clientsTBody: "#ctable tbody",
-  addressesTBody: "#etable tbody",
-  addressesFormTableBody: "#tabelaEnderecos tbody",
-  clientsTable: "#ctable",
-  addressesTable: "#etable",
-  cpfInput: "#cpf",
-  cepInput: "#cepEndereco",
-  addAddressBtn: "#adicionarEndereco",
-  ufSelect: "#ufEndereco",
-  delRowCep: ".delrowcep",
-  newClient: "#bt_newClient",
+  // form endereço (inputs)
+  IN_TIPO: "tipoEndereco",
+  IN_CEP: "cepEndereco",
+  IN_LOG: "logradouroEndereco",
+  IN_NUM: "numeroEndereco",
+  IN_BAIRRO: "bairroEndereco",
+  IN_CIDADE: "cidadeEndereco",
+  IN_UF: "ufEndereco",
+  IN_COMPL: "complementoEndereco",
+
+  // form cliente (inputs)
+  IN_CPF: "cpf",
+  IN_NOME: "nome",
+  IN_TEL: "telefone",
+  IN_EMAIL: "email",
+  IN_INDIC: "indicacao",
+
+  // botões
+  BT_ADD_ADDR: "#adicionarEndereco",
+  BT_NEW_CLIENT: "#bt_newClient",
+
+  // ações
+  BTN_DEL_ADDR: ".delrowcep",
 };
 
 const UF_LIST = [
@@ -57,259 +74,280 @@ const UF_LIST = [
   "TO",
 ];
 
-// Normaliza CEP (remove não dígitos) e, se tiver util formatCEP, aplica.
-function normalizeCep(raw) {
-  const digits = (raw || "").replace(/\D/g, "");
-  return digits.length === 8
-    ? formatCEP
-      ? formatCEP(digits)
-      : digits
-    : digits;
-}
+// estado simples (id do cliente atualmente selecionado)
+let CURRENT_CLIENT_ID = null;
 
-// cria elementos com texto de forma segura
-function el(tag, text) {
+/* ================================
+   Helpers DOM seguros
+================================ */
+const q = (sel, root = document) => root.querySelector(sel);
+const qa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+const el = (tag, props = {}, children = []) => {
   const node = document.createElement(tag);
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
-// trata respostas fetch
-async function toJSONorThrow(res) {
-  if (!res.ok) {
-    const msg = await res.text().catch(() => res.statusText || "Erro");
-    throw new Error(`${res.status} ${res.statusText} - ${msg}`);
+  const { dataset, style, className, ...rest } = props || {};
+  Object.assign(node, rest);
+  if (className) node.className = className;
+  if (style) {
+    if (typeof style === "string") node.setAttribute("style", style);
+    else Object.assign(node.style, style);
   }
-  return res.json();
+  if (dataset && typeof dataset === "object") {
+    Object.entries(dataset).forEach(([k, v]) => (node.dataset[k] = String(v)));
+  }
+  (children || []).forEach((c) =>
+    node.appendChild(typeof c === "string" ? document.createTextNode(c) : c)
+  );
+  return node;
+};
+
+const td = (text, center = false) =>
+  el("td", { ...(center ? { style: { textAlign: "center" } } : {}) }, [
+    String(text),
+  ]);
+
+/* ================================
+   Normalizadores
+================================ */
+const onlyDigits = (s) => String(s || "").replace(/\D/g, "");
+const normalizeCpfCnpj = (s) => onlyDigits(s);
+const normalizeCep = (raw) => {
+  const digits = onlyDigits(raw);
+  // se você tiver FormatUtils.formatCEP, use:
+  return digits;
+};
+
+/* ================================
+   fetchJson (robusto)
+================================ */
+async function fetchJson(url, options) {
+  try {
+    const res = await API.apiFetch(url, options);
+    const ct = res.headers.get("content-type") || "";
+    let body;
+    if (ct.includes("application/json")) {
+      body = await res.json();
+    } else {
+      const txt = await res.text();
+      try {
+        body = JSON.parse(txt);
+      } catch {
+        body = { raw: txt };
+      }
+    }
+    if (!res.ok) {
+      const msg =
+        body?.message ||
+        body?.error ||
+        body?.raw ||
+        res.statusText ||
+        "Erro na requisição";
+      throw new Error(msg);
+    }
+    return body;
+  } catch (err) {
+    console.error("fetchJson:", url, err);
+    throw err;
+  }
 }
 
 /* ================================
-   Camada de API (responsabilidade única: buscar dados)
+   API (responsabilidade única)
 ================================ */
+const api = {
+  getClients: () => fetchJson(`/getClients`),
+  getClientByCpf: (cpfOrCnpj) =>
+    fetchJson(`/getClient?p_cpf_cnpj=${encodeURIComponent(cpfOrCnpj)}`),
 
-async function fetchClients() {
-  const res = await API.apiFetch(`/getClients`);
-  return toJSONorThrow(res);
-}
+  setClient: (payload) =>
+    fetchJson(`/setClient`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
 
-async function fetchNewClient(payload) {
-  const res = await API.apiFetch("/setClient", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-}
+  getAddresses: (clientId) =>
+    fetchJson(`/getEnderecos?p_id_cliente=${encodeURIComponent(clientId)}`),
 
-var idCliente = "";
+  setAddress: (payload) =>
+    fetchJson(`/setEndereco`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
 
-async function fetchAddresses(clientId) {
-  idCliente = clientId;
-  const res = await API.apiFetch(`/getEnderecos?p_id_cliente=${clientId}`);
-  return toJSONorThrow(res);
-}
+  deleteAddress: (payload) =>
+    fetchJson(`/delEndereco`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
 
-async function fetchDelAddress(params) {
-  const res = await API.apiFetch("/delEndereco", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
-  });
-}
-
-async function fetchAddress(params) {
-  const res = await API.apiFetch("/setEndereco", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
-  });
-}
-
-async function fetchClientByCpf(cpfOrCnpj) {
-  const res = await API.apiFetch(`/getClient?p_cpf_cnpj=${cpfOrCnpj}`);
-  return toJSONorThrow(res);
-}
-
-async function fetchCep(cep) {
-  const res = await API.apiFetch(`https://viacep.com.br/ws/${cep}/json/`);
-  return toJSONorThrow(res);
-}
+  // via CEP direto (viacep) — se preferir proxy pelo backend, troque aqui
+  getCep: (cep) =>
+    fetchJson(`https://viacep.com.br/ws/${encodeURIComponent(cep)}/json/`),
+};
 
 /* ================================
-   Renderização (responsabilidade: só mexer no DOM)
+   Render (somente DOM)
 ================================ */
-
 function renderClientsTable(clients = []) {
-  const tbody = document.querySelector(SELECTORS.clientsTBody);
+  const tbody = q(SEL.TBODY_CLIENTS);
   tbody.innerHTML = "";
 
   if (!clients.length) {
-    const tr = document.createElement("tr");
-    const td = el("td", "Nenhum cliente encontrado");
-    td.setAttribute("colspan", "3");
-    td.style.textAlign = "center";
-    tr.appendChild(td);
+    const tr = el("tr", {}, [
+      el("td", { colSpan: 3, style: { textAlign: "center" } }, [
+        "Nenhum cliente encontrado",
+      ]),
+    ]);
     tbody.appendChild(tr);
     return;
   }
 
   const frag = document.createDocumentFragment();
   clients.forEach((c) => {
-    const tr = document.createElement("tr");
-    tr.classList.add("row-end");
-    tr.dataset.clientId = c.p_id_cliente;
-
-    const tdId = el("td", c.p_id_cliente);
-    tdId.style.textAlign = "center";
-    const tdCpf = el("td", c.p_cpf);
-    const tdName = el("td", c.p_nome);
-
-    tr.append(tdId, tdCpf, tdName);
+    const tr = el(
+      "tr",
+      { className: "row-end", dataset: { clientId: c.p_id_cliente } },
+      [td(c.p_id_cliente, true), td(c.p_cpf), td(c.p_nome)]
+    );
     frag.appendChild(tr);
   });
   tbody.appendChild(frag);
 }
 
 function renderAddressesTable(addresses = []) {
-  const tbody = document.querySelector(SELECTORS.addressesTBody);
+  const tbody = q(SEL.TBODY_ADDRS);
   tbody.innerHTML = "";
 
   if (!addresses.length) {
-    const tr = document.createElement("tr");
-    const td = el("td", "Nenhum endereço para este cliente");
-    td.setAttribute("colspan", "8");
-    td.style.textAlign = "center";
-    tr.appendChild(td);
+    const tr = el("tr", {}, [
+      el("td", { colSpan: 9, style: { textAlign: "center" } }, [
+        "Nenhum endereço para este cliente",
+      ]),
+    ]);
     tbody.appendChild(tr);
     return;
   }
 
   const frag = document.createDocumentFragment();
   addresses.forEach((a) => {
-    const tr = document.createElement("tr");
-    tr.append(
-      el("td", a.p_id),
-      el("td", a.p_tipo),
-      el("td", a.p_cep),
-      el("td", a.p_endereco),
-      el("td", a.p_numero),
-      el("td", a.p_bairro),
-      el("td", a.p_cidade),
-      el("td", a.p_estado)
-    );
+    const tr = el("tr", {}, [
+      // 0: ID (usado para deleção) — pode ficar oculto via CSS se preferir
+      el("td", { style: { display: "none" } }, [String(a.p_id)]),
+      td(a.p_tipo, true),
+      td(a.p_cep),
+      td(a.p_endereco),
+      td(a.p_numero),
+      td(a.p_bairro),
+      td(a.p_cidade),
+      td(a.p_estado, true),
+    ]);
 
-    tr.children[0].style.display = "none";
-    tr.children[1].style.textAlign = "center";
-    tr.children[7].style.textAlign = "center";
-
-    const tdBtn = document.createElement("td");
+    const tdBtn = el("td");
     tdBtn.innerHTML = TableUtils.insertDeleteButtonCell(
-      SELECTORS.delRowCep.slice(1)
+      SEL.BTN_DEL_ADDR.slice(1)
     );
     tr.appendChild(tdBtn);
+
     frag.appendChild(tr);
   });
   tbody.appendChild(frag);
 }
 
 function renderUfOptions() {
-  const select = document.querySelector(SELECTORS.ufSelect);
+  const select = document.getElementById(SEL.IN_UF);
+  if (!select) return;
   select.innerHTML = "";
-  const optDash = document.createElement("option");
-  optDash.value = "-";
-  optDash.textContent = "-";
-  select.appendChild(optDash);
-
+  select.appendChild(el("option", { value: "-" }, ["-"]));
   const frag = document.createDocumentFragment();
   UF_LIST.forEach((uf) => {
-    const option = document.createElement("option");
-    option.value = uf;
-    option.textContent = uf;
-    frag.appendChild(option);
+    frag.appendChild(el("option", { value: uf }, [uf]));
   });
   select.appendChild(frag);
 }
 
 /* ================================
-   Ações de formulário / UI
+   Serviços (loaders)
 ================================ */
-
 async function populateClients() {
   try {
-    // opcional: mostrar loading
-    renderClientsTable([]);
-    const clients = await fetchClients();
+    const clients = await api.getClients();
     renderClientsTable(clients);
   } catch (err) {
-    console.error(err);
-    Swal.fire("Erro", "Não foi possível carregar os clientes.", "error");
+    Swal.fire(
+      "Erro",
+      err.message || "Não foi possível carregar os clientes.",
+      "error"
+    );
   }
 }
 
-async function onClientRowClick(event) {
-  const row = event.target.closest("tr");
+async function populateAddresses(clientId) {
+  try {
+    const addresses = await api.getAddresses(clientId);
+    renderAddressesTable(addresses);
+  } catch (err) {
+    Swal.fire(
+      "Erro",
+      err.message || "Não foi possível carregar os endereços.",
+      "error"
+    );
+  }
+}
+
+/* ================================
+   Controladores (UI / Ações)
+================================ */
+async function onClientRowClick(e) {
+  const row = e.target.closest("tr");
   if (!row || !row.classList.contains("row-end")) return;
 
   const idClient = row.dataset.clientId || row.cells[0]?.textContent?.trim();
   if (!idClient) return;
 
   // highlight de seleção
-  document
-    .querySelectorAll(`${SELECTORS.clientsTBody} tr`)
-    .forEach((tr) => tr.classList.remove("table-click-row"));
+  qa(`${SEL.TBODY_CLIENTS} tr`).forEach((tr) =>
+    tr.classList.remove("table-click-row")
+  );
   row.classList.add("table-click-row");
 
-  try {
-    const addresses = await fetchAddresses(idClient);
-    renderAddressesTable(addresses);
-  } catch (err) {
-    console.error(err);
-    Swal.fire(
-      "Erro",
-      "Não foi possível carregar endereços do cliente.",
-      "error"
-    );
-  }
+  CURRENT_CLIENT_ID = idClient;
+  await populateAddresses(idClient);
 }
 
-function getTextSafe(id) {
-  return (DomUtils.getText(id) || "").trim();
-}
-
-function getClientValues() {
-  const rawCpf = getTextSafe("cpf");
-  const cpf = rawCpf.replace(/\D/g, "");
-  const nome = getTextSafe("nome").toLocaleUpperCase("pt-BR");
-  const telefone = getTextSafe("telefone").replace(/\D/g, "");
-  const email = getTextSafe("email");
-  const indicacao = getTextSafe("indicacao");
+function getClientFormValues() {
+  const cpf = normalizeCpfCnpj(DomUtils.getText(SEL.IN_CPF));
+  const nome = (DomUtils.getText(SEL.IN_NOME) || "")
+    .toLocaleUpperCase("pt-BR")
+    .trim();
+  const telefone = onlyDigits(DomUtils.getText(SEL.IN_TEL));
+  const email = (DomUtils.getText(SEL.IN_EMAIL) || "").trim();
+  const indicacao = (DomUtils.getText(SEL.IN_INDIC) || "").trim();
   return { cpf, nome, telefone, email, indicacao };
 }
 
 function validateRequired({ cpf, nome, telefone, email }) {
-  const faltando = [];
-  if (!cpf) faltando.push("CPF");
-  if (!nome) faltando.push("Nome");
-  if (!telefone) faltando.push("Telefone");
-  if (!email) faltando.push("Email");
-  return faltando;
+  const miss = [];
+  if (!cpf) miss.push("CPF/CNPJ");
+  if (!nome) miss.push("Nome");
+  if (!telefone) miss.push("Telefone");
+  if (!email) miss.push("Email");
+  return miss;
 }
 
-function isEmailOk(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || ""));
 
 export async function validateClientForm(e) {
-  // se vier de um <form>
   e?.preventDefault?.();
 
-  const v = getClientValues();
-
-  const faltando = validateRequired(v);
-  if (faltando.length) {
-    await Swal.fire("Atenção", `Preencha: ${faltando.join(", ")}.`, "info");
+  const v = getClientFormValues();
+  const miss = validateRequired(v);
+  if (miss.length) {
+    await Swal.fire("Atenção", `Preencha: ${miss.join(", ")}.`, "info");
     return false;
   }
-
   if (!ValidationUtils.validarCpfCnpj(v.cpf)) {
     await Swal.fire({
       icon: "error",
@@ -318,8 +356,7 @@ export async function validateClientForm(e) {
     });
     return false;
   }
-
-  if (!isEmailOk(v.email)) {
+  if (!isEmail(v.email)) {
     await Swal.fire({ icon: "error", title: "ERRO", text: "Email inválido!" });
     return false;
   }
@@ -334,33 +371,30 @@ export async function validateClientForm(e) {
   });
   if (!isConfirmed) return false;
 
-  // opcional: desabilitar botão de submit se veio de um form
   const btn = e?.submitter;
   if (btn) btn.disabled = true;
 
   try {
-    const data = {
+    await api.setClient({
       p_cpf_cnpj: v.cpf,
       p_nome: v.nome,
       p_telefone: v.telefone,
       p_email: v.email,
       p_indicacao: v.indicacao,
-    };
+    });
 
-    await API.apiFetchNewClient(data);
-
+    await populateClients();
     await Swal.fire({
       icon: "success",
       title: "SUCESSO",
-      text: "Novo Cliente cadastrado com sucesso!",
+      text: "Novo cliente cadastrado com sucesso!",
     });
-
     return true;
-  } catch (erro) {
+  } catch (err) {
     await Swal.fire({
       icon: "error",
       title: "ERRO",
-      text: `Não foi possível salvar cliente: ${erro.message}`,
+      text: `Não foi possível salvar cliente: ${err.message}`,
     });
     return false;
   } finally {
@@ -370,19 +404,20 @@ export async function validateClientForm(e) {
 
 async function lookupCepAndFill() {
   try {
-    const raw = DomUtils.getText("cepEndereco");
-    const cep = normalizeCep(raw);
-
-    const endereco = await API.getCep(DomUtils.getText("cepEndereco"));
-    if (endereco.erro) {
+    const cep = normalizeCep(DomUtils.getText(SEL.IN_CEP));
+    if (!cep || cep.length < 8) {
+      Swal.fire("Atenção", "Informe um CEP válido (8 dígitos).", "info");
+      return;
+    }
+    const endereco = await api.getCep(cep);
+    if (endereco?.erro) {
       Swal.fire("CEP não encontrado", "Verifique o CEP informado.", "warning");
       return;
     }
-
-    DomUtils.setText("logradouroEndereco", endereco.logradouro || "");
-    DomUtils.setText("bairroEndereco", endereco.bairro || "");
-    DomUtils.setText("cidadeEndereco", endereco.localidade || "");
-    DomUtils.setText("ufEndereco", endereco.uf || "");
+    DomUtils.setText(SEL.IN_LOG, endereco.logradouro || "");
+    DomUtils.setText(SEL.IN_BAIRRO, endereco.bairro || "");
+    DomUtils.setText(SEL.IN_CIDADE, endereco.localidade || "");
+    DomUtils.setText(SEL.IN_UF, endereco.uf || "");
   } catch (err) {
     console.error(err);
     Swal.fire("Erro", "Falha ao consultar o CEP.", "error");
@@ -390,17 +425,22 @@ async function lookupCepAndFill() {
 }
 
 async function addAddressFromForm() {
-  const tipoEndereco = DomUtils.getText("tipoEndereco");
-  const cepEndereco = DomUtils.getText("cepEndereco");
-  const cidadeEndereco = DomUtils.getText("cidadeEndereco");
-  const numeroEndereco = DomUtils.getText("numeroEndereco");
-  const ufEndereco = DomUtils.getText("ufEndereco");
-  const complementoEndereco = DomUtils.getText("complementoEndereco");
-  const logradouroEndereco = DomUtils.getText("logradouroEndereco");
-  const bairroEndereco = DomUtils.getText("bairroEndereco");
+  if (!CURRENT_CLIENT_ID) {
+    Swal.fire("Atenção", "Selecione primeiro um cliente na tabela.", "info");
+    return;
+  }
 
-  // Validações simples
-  if (!tipoEndereco || !cepEndereco || !logradouroEndereco || !numeroEndereco) {
+  const tipo = DomUtils.getText(SEL.IN_TIPO);
+  const cep = normalizeCep(DomUtils.getText(SEL.IN_CEP));
+  const log = DomUtils.getText(SEL.IN_LOG);
+  const num = DomUtils.getText(SEL.IN_NUM);
+  const bairro = DomUtils.getText(SEL.IN_BAIRRO);
+  const cidade = DomUtils.getText(SEL.IN_CIDADE);
+  const uf = DomUtils.getText(SEL.IN_UF);
+  const compl = DomUtils.getText(SEL.IN_COMPL);
+
+  // validação mínima
+  if (!tipo || !cep || !log || !num) {
     Swal.fire(
       "Atenção",
       "Preencha os campos obrigatórios (tipo, CEP, logradouro, número).",
@@ -408,80 +448,64 @@ async function addAddressFromForm() {
     );
     return;
   }
-  const result = await Swal.fire({
+
+  const { isConfirmed } = await Swal.fire({
     icon: "question",
     title: "Inserir",
-    text: "Deseja inserir novo endereco",
+    text: "Deseja inserir novo endereço?",
     showDenyButton: true,
     denyButtonText: "Cancelar",
     confirmButtonText: "Confirmar",
   });
+  if (!isConfirmed) return;
 
-  if (!result.isConfirmed) return;
+  try {
+    await api.setAddress({
+      p_id_cliente: Number(CURRENT_CLIENT_ID),
+      p_endereco: log,
+      p_cep: cep,
+      p_cidade: cidade,
+      p_estado: uf,
+      p_numero: num,
+      p_tipo: tipo,
+      p_bairro: bairro,
+      p_complemento: compl,
+    });
 
-  const data = {
-    p_id_cliente: parseInt(idCliente),
-    p_endereco: logradouroEndereco,
-    p_cep: cepEndereco,
-    p_cidade: cidadeEndereco,
-    p_estado: ufEndereco,
-    p_numero: numeroEndereco,
-    p_tipo: tipoEndereco,
-    p_bairro: bairroEndereco,
-  };
+    // Recarrega a lista — garante que a 1ª coluna tenha o ID para deleção
+    await populateAddresses(CURRENT_CLIENT_ID);
 
-  const tbody = document.querySelector(SELECTORS.addressesTBody);
-  const addresses = await API.apiFetchAddresses(data.p_id_cliente);
-  if (!addresses.length) {
-    tbody.innerHTML = "";
+    Swal.fire({
+      icon: "success",
+      title: "SUCESSO",
+      text: "Endereço inserido com sucesso!",
+    });
+  } catch (err) {
+    Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: err.message || "Falha ao inserir endereço.",
+    });
   }
-  fetchAddress(data);
-
-  const tr = document.createElement("tr");
-
-  tr.append(
-    el("td", tipoEndereco),
-    el("td", cepEndereco),
-    el("td", logradouroEndereco),
-    el("td", numeroEndereco),
-    el("td", bairroEndereco),
-    el("td", cidadeEndereco),
-    el("td", ufEndereco)
-  );
-
-  tr.children[0].style.textAlign = "center";
-
-  const tdBtn = document.createElement("td");
-  tdBtn.innerHTML = TableUtils.insertDeleteButtonCell(
-    SELECTORS.delRowCep.slice(1)
-  );
-  tr.appendChild(tdBtn);
-  tbody.appendChild(tr);
-
-  Swal.fire({
-    icon: "success",
-    title: "SUCESSO",
-    text: "Endereço inserido com Sucesso !!",
-  });
 }
 
 async function populateClientFormByCpf() {
   try {
-    const cpf = DomUtils.getText("cpf");
-
+    const raw = DomUtils.getText(SEL.IN_CPF);
+    const cpf = normalizeCpfCnpj(raw);
     if (!cpf || !ValidationUtils.validarCpfCnpj(cpf)) {
-      Swal.fire("Erro", "CPF invalido.", "error");
+      Swal.fire("Erro", "CPF/CNPJ inválido.", "error");
       return;
     }
 
-    const data = await API.apiFetchClientByCpf(cpf);
-    if (!data || !data.length) return;
+    const data = await api.getClientByCpf(cpf);
+    if (!Array.isArray(data) || !data.length) return;
 
     const cli = data[0];
-    DomUtils.setText("nome", cli.p_nome || "");
-    DomUtils.setText("telefone", cli.p_telefone || "");
-    DomUtils.setText("email", cli.p_email || "");
-    DomUtils.setText("indicacao", cli.p_indicacao || "");
+    DomUtils.setText(SEL.IN_NOME, cli.p_nome || "");
+    DomUtils.setText(SEL.IN_TEL, cli.p_telefone || "");
+    DomUtils.setText(SEL.IN_EMAIL, cli.p_email || "");
+    DomUtils.setText(SEL.IN_INDIC, cli.p_indicacao || "");
   } catch (err) {
     console.error(err);
     Swal.fire(
@@ -495,91 +519,72 @@ async function populateClientFormByCpf() {
 /* ================================
    Remoção de linhas (endereços)
 ================================ */
-async function deleteRow(e) {
-  // encontra o botão que foi realmente clicado (ou um pai dele)
-  const btn = e.target.closest(SELECTORS.delRowCep);
-  if (!btn) return; // clique não foi no botão de deletar
+async function onDeleteAddressClick(e) {
+  const btn = e.target.closest(SEL.BTN_DEL_ADDR);
+  if (!btn) return;
 
   const tr = btn.closest("tr");
-  const firstCellValue = tr.cells[0].innerText.trim();
+  const id = tr?.cells?.[0]?.innerText?.trim(); // 1ª coluna é o ID (oculta)
+  if (!id) return;
 
-  const result = await Swal.fire({
+  const { isConfirmed } = await Swal.fire({
     icon: "question",
     title: "Excluir",
-    text: "Deseja deletar endereço ?",
+    text: "Deseja deletar endereço?",
     showDenyButton: true,
     denyButtonText: "Cancelar",
     confirmButtonText: "Confirmar",
   });
-
-  if (!result.isConfirmed) return;
+  if (!isConfirmed) return;
 
   try {
-    const data = {
-      p_id: firstCellValue,
-    };
-    fetchDelAddress(data);
+    await api.deleteAddress({ p_id: id });
     tr.remove();
-
     Swal.fire({
       icon: "success",
       title: "SUCESSO",
-      text: "Endereço removido com Sucesso !!!",
+      text: "Endereço removido com sucesso!",
     });
   } catch (err) {
-    Swal.fire({
-      icon: "error",
-      title: "ERRO",
-      text: `FALHA: ${err.message}`,
-    });
+    Swal.fire({ icon: "error", title: "ERRO", text: `Falha: ${err.message}` });
   }
 }
 
 /* ================================
-   Bootstrap da página (event wiring)
+   Bootstrap / wiring
 ================================ */
-
 function wireEvents() {
-  // Delegação: um ouvinte para as linhas da tabela de clientes
-  document
-    .querySelector(SELECTORS.clientsTBody)
-    .addEventListener("click", onClientRowClick);
+  // clique em linha de clientes (delegação)
+  q(SEL.TBODY_CLIENTS).addEventListener("click", onClientRowClick);
 
-  // Buscar cliente ao alterar CPF
+  // buscar cliente por CPF
   EventUtils.addEventToElement(
-    SELECTORS.cpfInput,
+    `#${SEL.IN_CPF}`,
     "change",
     populateClientFormByCpf
   );
 
-  // Consultar CEP ao sair do campo
-  EventUtils.addEventToElement(SELECTORS.cepInput, "blur", lookupCepAndFill);
+  // CEP → auto-preenche
+  EventUtils.addEventToElement(`#${SEL.IN_CEP}`, "blur", lookupCepAndFill);
 
-  // Adicionar endereço à tabela do formulário
-  EventUtils.addEventToElement(
-    SELECTORS.addAddressBtn,
-    "click",
-    addAddressFromForm
-  );
+  // adicionar endereço
+  EventUtils.addEventToElement(SEL.BT_ADD_ADDR, "click", addAddressFromForm);
 
-  // Deleta a linha ta tabela
-  EventUtils.addEventToElement(SELECTORS.addressesTBody, "click", deleteRow);
+  // deletar endereço (delegação)
+  EventUtils.addEventToElement(SEL.TBODY_ADDRS, "click", onDeleteAddressClick);
 
-  // adiciona novo cliente
-  EventUtils.addEventToElement(
-    SELECTORS.newClient,
-    "click",
-    validateClientForm
-  );
+  // novo cliente
+  EventUtils.addEventToElement(SEL.BT_NEW_CLIENT, "click", validateClientForm);
 
-  // Melhorar UX de hover das tabelas existentes
+  // UX das tabelas + filtros
   EventUtils.tableHover("ctable");
   EventUtils.tableHover("etable");
+  enableTableFilterSort("ctable");
+  enableTableFilterSort("etable");
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   renderUfOptions();
-  populateClients();
+  await populateClients();
   wireEvents();
-  enableTableFilterSort("ctable");
 });

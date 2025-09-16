@@ -159,6 +159,28 @@ export class TableUtils {
     return value === "-" ? "" : value;
   }
 
+  static logNumerosMarcados(tableSelector, _function) {
+    const table = document.querySelector(tableSelector);
+    if (!table) return;
+
+    // Pega todas as linhas do tbody (ignora o header)
+    const rows = table.querySelectorAll("tbody tr");
+
+    rows.forEach((row) => {
+      const firstCell = row.cells[0]; // 1ª coluna (checkbox)
+      const secondCell = row.cells[1]; // 2ª coluna (número)
+
+      if (!firstCell || !secondCell) return;
+
+      const checkbox = firstCell.querySelector('input[type="checkbox"]');
+      if (checkbox && checkbox.checked) {
+        // Se a 2ª coluna for texto
+        const raw = secondCell.textContent.trim();
+        _function(raw);
+      }
+    });
+  }
+
   static insertDeleteButtonCell(_class) {
     return `
         <button class="btn btn-danger ${_class}" type="button" style="padding:0;margin-left:10px;">
@@ -275,27 +297,92 @@ export class CepUtils {
    Cookies (camada de serviço)
 ============================ */
 export class API {
+  static __refreshPromise = null; // evita vários refresh concorrentes
+  static __redirecting = false; // evita múltiplos alerts/redirects
+
   static async getCep(cep) {
     const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
     return res.json();
   }
 
-  static async apiFetch(url, options = {}) {
-    const res = await fetch(url, { credentials: "include", ...options });
+  static async apiFetch(
+    url,
+    { method = "GET", body, headers = {}, ...rest } = {}
+  ) {
+    const isForm = body instanceof FormData;
+    const isString = typeof body === "string";
+    const isJsonBody = body !== undefined && !isForm && !isString;
 
+    const opts = {
+      method,
+      credentials: "include",
+      headers: isForm
+        ? headers
+        : isJsonBody
+        ? { "Content-Type": "application/json", ...headers }
+        : { ...headers },
+      body: isForm
+        ? body
+        : isString
+        ? body
+        : isJsonBody
+        ? JSON.stringify(body)
+        : undefined,
+      ...rest,
+    };
+
+    let res = await fetch(url, opts);
     if (res.status === 401) {
-      await Swal.fire({
-        icon: "error",
-        title: "Sessão expirada",
-        text: "Faça login novamente.",
-        confirmButtonText: "OK",
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-      });
+      // tenta refresh uma vez
+      try {
+        if (!API.__refreshPromise) {
+          API.__refreshPromise = fetch("/auth/refresh", {
+            method: "POST",
+            credentials: "include",
+          }).finally(() => (API.__refreshPromise = null));
+        }
+        const r = await API.__refreshPromise;
+        if (r && r.ok) {
+          // refaz a chamada original
+          res = await fetch(url, opts);
+        }
+      } catch {
+        /* silencioso */
+      }
 
-      window.location.href = "/index.html";
-      return new Promise(() => {}); // impede continuação após o redirect
+      // Se ainda estiver 401 => alerta + redirect
+      if (res.status === 401) {
+        if (!API.__redirecting) {
+          API.__redirecting = true;
+          try {
+            await Swal.fire({
+              icon: "error",
+              title: "Sessão expirada",
+              text: "Faça login novamente.",
+              confirmButtonText: "OK",
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+            });
+          } finally {
+            window.location.replace("/index.html");
+          }
+        }
+        return new Promise(() => {}); // trava o fluxo
+      }
     }
+
+    // 🔴 NOVO: para qualquer erro != 2xx, lançar exceção
+    if (!res.ok) {
+      let msg;
+      try {
+        const j = await res.clone().json();
+        msg = j?.error || j?.message || JSON.stringify(j);
+      } catch {
+        msg = await res.text();
+      }
+      throw new Error(msg || `HTTP ${res.status} ${res.statusText}`);
+    }
+
     return res;
   }
 }
@@ -359,103 +446,3 @@ function validarCNPJ(cnpj) {
   resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
   return resultado === parseInt(digitos.charAt(1));
 }
-
-/* =========================================================
-   ====== SHIMS DE COMPATIBILIDADE (exports antigos) =======
-   (permitem migrar sem quebrar chamadas existentes)
-========================================================= */
-
-// // Datas
-// export function setData(elementId) {
-//   return DateUtils.setISODateToInput(elementId);
-// }
-// export function convertDataBr(date) {
-//   return DateUtils.toBR(date);
-// }
-// export function convertDataISO(date) {
-//   return DateUtils.toISO(date);
-// }
-
-// // DOM
-// export function getText(id) {
-//   return DomUtils.getText(id);
-// }
-// export function setText(id, v) {
-//   return DomUtils.setText(id, v);
-// }
-// export function getInnerHtml(id) {
-//   return DomUtils.getInnerHtml(id);
-// }
-// export function setInnerHtml(id, v) {
-//   return DomUtils.setInnerHtml(id, v);
-// }
-// export function getChecked(id) {
-//   return DomUtils.getChecked(id);
-// }
-// export function setChecked(id, b) {
-//   return DomUtils.setChecked(id, b);
-// }
-// export function setFocus(id) {
-//   return DomUtils.setFocus(id);
-// }
-// export function getValue(id) {
-//   return DomUtils.getUpperValue(id);
-// }
-// export function getSelectedOptionText(sel) {
-//   return DomUtils.getSelectedOptionText(sel);
-// }
-// export function clearInputFields() {
-//   return DomUtils.clearInputs();
-// }
-
-// // Eventos / navegação
-// export function addEventToElement(sel, evt, fn) {
-//   return EventUtils.addEventToElement(sel, evt, fn);
-// }
-// export function enableEnterAsTab() {
-//   return EventUtils.enableEnterAsTab();
-// }
-// export function onmouseover(tableId) {
-//   return EventUtils.tableHover(tableId);
-// }
-
-// // Tabelas
-// export function getIndexColumnValue(td, i) {
-//   return TableUtils.getIndexColumnValue(td, i);
-// }
-// export function getColumnValue(td, i) {
-//   return TableUtils.getColumnValue(td, i);
-// }
-// export function insertButtonCellTable(param) {
-//   return TableUtils.insertDeleteButtonCell(param);
-// }insertButtonCellTable
-
-// // Formatação
-// export function formatValueDecimal(v) {
-//   return FormatUtils.toDecimalStringFromBR(v);
-// }
-// export function changeFormatCurrency(e) {
-//   return FormatUtils.handleCurrencyInputEvent(e);
-// }
-// export function formatCurrency(v) {
-//   return FormatUtils.formatCurrencyBR(v);
-// }
-// export function formatPercent(v) {
-//   return FormatUtils.formatPercentBR(v);
-// }
-// export function convertDecimal(num) {
-//   return FormatUtils.convertDecimalToPercent(num);
-// }
-
-// // CEP
-// export function formatCEP(inputId) {
-//   return CepUtils.attachMask(inputId);
-// }
-
-// // Cookies
-// export async function getCookie(k) {
-//   return API.getCookie(k);
-// }
-// export async function setCookie(v) {
-//   return API.setCookie(v);
-// }

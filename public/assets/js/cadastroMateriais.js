@@ -1,131 +1,247 @@
+// app-materiais-categorias.js (refatorado)
 import { FormatUtils, EventUtils, DomUtils, API } from "./utils.js";
 import { enableTableFilterSort } from "./filtertable.js";
 import Swal from "./sweetalert2.esm.all.min.js";
 
+/* =========================
+ * Seletores centralizados
+ * ========================= */
+const SEL = {
+  // tables
+  T_CATEGORIAS: "#ctable",
+  T_CATEGORIAS_TBODY: "#ctable tbody",
+  T_MATERIAIS: "#mtable",
+  T_MATERIAIS_TBODY: "#mtable tbody",
+
+  // inputs categorias
+  IN_CAT_ID: "cod_categoria",
+  IN_CAT_DESC: "desc_categoria",
+
+  // inputs materiais
+  IN_MAT_DESC: "desc_material",
+  IN_MAT_UNID: "unid_material",
+  IN_MAT_PRECO: "preco_material",
+  IN_MAT_CAT: "cat_material",
+  IN_MAT_ID: "cod_material",
+
+  // botões
+  BT_ADD_MAT: "#bt_new_material",
+  BT_ADD_CAT: "#bt_new_category",
+};
+
+/* =========================
+ * Helpers DOM (seguros)
+ * ========================= */
+const q = (sel, root = document) => root.querySelector(sel);
+const el = (tag, props = {}, children = []) => {
+  const node = document.createElement(tag);
+  const { dataset, style, className, ...rest } = props || {};
+  Object.assign(node, rest);
+  if (className) node.className = className;
+  if (style) {
+    if (typeof style === "string") node.setAttribute("style", style);
+    else Object.assign(node.style, style);
+  }
+  if (dataset) {
+    Object.entries(dataset).forEach(([k, v]) => (node.dataset[k] = String(v)));
+  }
+  (children || []).forEach((c) =>
+    node.appendChild(typeof c === "string" ? document.createTextNode(c) : c)
+  );
+  return node;
+};
+const tdCenter = (text) =>
+  el("td", { style: { textAlign: "center" } }, [String(text)]);
+
+/* =========================
+ * Wrapper de fetch (JSON)
+ * ========================= */
 async function fetchJson(url, options) {
-  const res = await API.apiFetch(url, options);
-  const ct = res.headers.get("content-type") || "";
-  const body = ct.includes("application/json")
-    ? await res.json()
-    : await res.text();
-  if (!res.ok) {
-    const msg =
-      (body && (body.error || body.message)) ||
-      res.statusText ||
-      "Erro na requisição";
-    throw new Error(msg);
+  try {
+    const res = await API.apiFetch(url, options);
+    const ct = res.headers.get("content-type") || "";
+    let body;
+    if (ct.includes("application/json")) {
+      body = await res.json();
+    } else {
+      const text = await res.text();
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = { raw: text };
+      }
+    }
+    if (!res.ok) {
+      const msg =
+        body?.error ||
+        body?.message ||
+        body?.raw ||
+        res.statusText ||
+        "Erro na requisição";
+      throw new Error(msg);
+    }
+    return body;
+  } catch (err) {
+    console.error("fetchJson:", url, err);
+    throw err;
   }
-  return body;
 }
-async function fillTableMateriais() {
-  const response = await API.apiFetch(`/fillTableMateriais`);
 
-  if (!response.ok) {
+/* =========================
+ * Camada de API
+ * ========================= */
+const api = {
+  getMateriais: () => fetchJson(`/fillTableMateriais`),
+  getCategorias: () => fetchJson(`/fillTableCategorias`),
+  setCategoria: (payload) =>
+    fetchJson(`/setCategoria`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  setMateriais: (payload) =>
+    fetchJson(`/setMateriais`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+};
+
+/* =========================
+ * Render
+ * ========================= */
+function renderMateriaisTable(items) {
+  const tbody = q(SEL.T_MATERIAIS_TBODY);
+  tbody.innerHTML = "";
+  const frag = document.createDocumentFragment();
+
+  (items || []).forEach((it) => {
+    const tr = el("tr", {}, [
+      tdCenter(it.p_id_material),
+      el("td", {}, [it.p_descricao]),
+      tdCenter(it.p_unidade),
+      tdCenter(FormatUtils.formatCurrencyBR(it.p_preco)),
+    ]);
+    frag.appendChild(tr);
+  });
+
+  tbody.appendChild(frag);
+}
+
+function renderCategoriasTable(items) {
+  const tbody = q(SEL.T_CATEGORIAS_TBODY);
+  tbody.innerHTML = "";
+  const frag = document.createDocumentFragment();
+
+  (items || []).forEach((it) => {
+    const tr = el("tr", {}, [
+      tdCenter(it.p_cod_categoria),
+      el("td", {}, [it.p_descricao]),
+    ]);
+    frag.appendChild(tr);
+  });
+
+  tbody.appendChild(frag);
+}
+
+function renderCategoriasOptions(items) {
+  const select = document.getElementById(SEL.IN_MAT_CAT);
+  // quando DomUtils.setText/getText usa id sem '#', segue esse padrão
+  const elSelect =
+    typeof select === "string" ? document.getElementById(select) : select;
+  if (!elSelect) return;
+
+  elSelect.innerHTML = `<option value="">Selecione a categoria</option>`;
+  (items || []).forEach((it) => {
+    const opt = el("option", { value: it.p_cod_categoria }, [it.p_descricao]);
+    elSelect.appendChild(opt);
+  });
+}
+
+/* =========================
+ * Serviços (loaders)
+ * ========================= */
+async function loadMateriais() {
+  try {
+    const data = await api.getMateriais();
+    renderMateriaisTable(data);
+  } catch (err) {
     Swal.fire({
       icon: "error",
-      message: "nao foi possivel carregar dados",
-    });
-  } else {
-    const data = await response.json();
-    const tbody = document.querySelectorAll("table tbody")[1];
-    tbody.innerHTML = "";
-    data.forEach((item) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-      <td style="text-align: center" >${item.p_id_material}</td>
-      <td >${item.p_descricao}</td>
-      <td style="text-align: center">${item.p_unidade}</td>
-      <td style="text-align: center">${FormatUtils.formatCurrencyBR(
-        item.p_preco
-      )}</td>
-      `;
-      tbody.appendChild(tr);
+      title: "ERRO",
+      text: err.message || "Não foi possível carregar materiais.",
     });
   }
 }
 
-async function fillTableCategorias() {
-  const response = await API.apiFetch(`/fillTableCategorias`);
-  if (!response.ok) {
+async function loadCategorias({ updateSelect = true } = {}) {
+  try {
+    const data = await api.getCategorias();
+    renderCategoriasTable(data);
+    if (updateSelect) renderCategoriasOptions(data);
+  } catch (err) {
     Swal.fire({
       icon: "error",
-      text: "nao foi possivel carregar dados",
-    });
-  } else {
-    const data = await response.json();
-    const tbody = document.querySelectorAll("table tbody")[0];
-    tbody.innerHTML = "";
-    data.forEach((item) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-      <td style="text-align: center" >${item.p_cod_categoria}</td>
-      <td >${item.p_descricao}</td>
-      `;
-      tbody.appendChild(tr);
+      title: "ERRO",
+      text: err.message || "Não foi possível carregar categorias.",
     });
   }
 }
 
-async function setCategoria() {
-  const idCategoria = DomUtils.getText("cod_categoria");
-  const categoria = DomUtils.getText("desc_categoria");
+/* =========================
+ * Controladores
+ * ========================= */
+async function onSetCategoria() {
+  const idCategoria = DomUtils.getText(SEL.IN_CAT_ID);
+  const categoria = DomUtils.getText(SEL.IN_CAT_DESC);
 
   if (!idCategoria || !categoria) {
     Swal.fire({
       icon: "warning",
       title: "Atenção",
-      text: "Preencha os campos em branco",
+      text: "Preencha os campos em branco.",
     });
     return;
   }
 
   const result = await Swal.fire({
     icon: "question",
-    text: "Deseja inserir nova Categoria ?",
+    text: "Deseja inserir nova Categoria?",
     showDenyButton: true,
     denyButtonText: "Cancelar",
     confirmButtonText: "Inserir",
   });
+  if (!result.isConfirmed) return;
 
-  if (result.isConfirmed) {
-    const data = {
+  try {
+    await api.setCategoria({
       p_id_categoria: idCategoria,
       p_categoria: categoria.toUpperCase(),
-    };
-
-    const response = await API.apiFetch("/setCategoria", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
     });
 
-    if (!response.ok) {
-      Swal.fire({
-        icon: "error",
-        title: "ERRO",
-        text: "Houve um problema ao salvar os dados",
-      });
-      return;
-    } else {
-      fillTableCategorias();
-      optionCategorias();
-      Swal.fire({
-        icon: "success",
-        title: "Sucesso",
-        text: "Categoria inserida com Sucesso !!!",
-      });
-    }
+    await Promise.all([loadCategorias({ updateSelect: true })]);
+    Swal.fire({
+      icon: "success",
+      title: "Sucesso",
+      text: "Categoria inserida com sucesso!",
+    });
+  } catch (err) {
+    Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: err.message || "Houve um problema ao salvar os dados.",
+    });
   }
 }
 
-async function setMaterais() {
-  const descricao = DomUtils.getText("desc_material");
-  const unidade = DomUtils.getText("unid_material");
-  const preco = DomUtils.getText("preco_material");
-  const categoria = DomUtils.getText("cat_material");
-  const codigo = DomUtils.getText("cod_material");
+async function onSetMateriais() {
+  const descricao = DomUtils.getText(SEL.IN_MAT_DESC);
+  const unidade = DomUtils.getText(SEL.IN_MAT_UNID);
+  const precoRaw = DomUtils.getText(SEL.IN_MAT_PRECO); // pode vir BRL
+  const categoria = DomUtils.getText(SEL.IN_MAT_CAT);
+  const codigo = DomUtils.getText(SEL.IN_MAT_ID);
 
-  if (!descricao || !unidade || !preco || !categoria || !codigo) {
+  if (!descricao || !unidade || !precoRaw || !categoria || !codigo) {
     Swal.fire({
       icon: "warning",
       title: "Atenção",
@@ -136,69 +252,59 @@ async function setMaterais() {
 
   const result = await Swal.fire({
     icon: "question",
-    text: "Deseja inserir o novo material ?",
+    text: "Deseja inserir o novo material?",
     showDenyButton: true,
     denyButtonText: "Cancelar",
     confirmButtonText: "Inserir",
   });
+  if (!result.isConfirmed) return;
 
-  if (result.isConfirmed) {
-    const data = {
+  try {
+    const payload = {
       p_descricao: descricao,
       p_unidade: unidade,
-      p_preco: preco,
+      p_preco: FormatUtils.toDecimalStringFromBR(precoRaw),
       p_id_categoria: categoria,
       p_id_material: codigo,
     };
 
-    const response = await API.apiFetch("/setMateriais", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    await api.setMateriais(payload);
 
-    if (!response.ok) {
-      const errText = await response.text();
-      Swal.fire({
-        icon: "error",
-        title: "ERRO",
-        text: "Não foi possível inserir Material: " + errText,
-      });
-    } else {
-      fillTableMateriais();
-      Swal.fire({
-        icon: "success",
-        title: "Sucesso",
-        text: "Material inserido com sucesso !!!",
-      });
-    }
+    await loadMateriais();
+    Swal.fire({
+      icon: "success",
+      title: "Sucesso",
+      text: "Material inserido com sucesso!",
+    });
+  } catch (err) {
+    Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: err.message || "Não foi possível inserir material.",
+    });
   }
 }
 
-async function optionCategorias() {
-  const response = await API.apiFetch(`/fillTableCategorias`);
+/* =========================
+ * Init
+ * ========================= */
+document.addEventListener("DOMContentLoaded", async () => {
+  await Promise.all([loadMateriais(), loadCategorias({ updateSelect: true })]);
 
-  const data = await response.json();
-  const select = document.getElementById("cat_material");
-  select.innerHTML = `<option value="">Selecione a categoria</option>`;
-
-  data.forEach((item) => {
-    const option = document.createElement("option");
-    option.value = item.p_cod_categoria;
-    option.textContent = item.p_descricao;
-    select.appendChild(option);
-  });
-}
-
-document.addEventListener("DOMContentLoaded", (event) => {
-  fillTableMateriais();
-  fillTableCategorias();
+  // efeitos/filtros
   EventUtils.tableHover("ctable");
   EventUtils.tableHover("mtable");
   enableTableFilterSort("ctable");
   enableTableFilterSort("mtable");
-  optionCategorias();
-});
 
-EventUtils.addEventToElement("#bt_new_material", "click", setMaterais);
-EventUtils.addEventToElement("#bt_new_category", "click", setCategoria);
+  // binds
+  EventUtils.addEventToElement(SEL.BT_ADD_MAT, "click", onSetMateriais);
+  EventUtils.addEventToElement(SEL.BT_ADD_CAT, "click", onSetCategoria);
+
+  // máscara de moeda no input de preço (se houver handler utilitário)
+  EventUtils.addEventToElement(
+    `#${SEL.IN_MAT_PRECO}`,
+    "input",
+    FormatUtils.handleCurrencyInputEvent
+  );
+});
