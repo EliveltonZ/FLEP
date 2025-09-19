@@ -20,21 +20,21 @@ const SEL = {
   TABLE_ADDRS: "#etable",
 
   // form endereço (inputs)
-  IN_TIPO: "tipoEndereco",
-  IN_CEP: "cepEndereco",
-  IN_LOG: "logradouroEndereco",
-  IN_NUM: "numeroEndereco",
-  IN_BAIRRO: "bairroEndereco",
-  IN_CIDADE: "cidadeEndereco",
-  IN_UF: "ufEndereco",
-  IN_COMPL: "complementoEndereco",
+  IN_TIPO: "#tipoEndereco",
+  IN_CEP: "#cepEndereco",
+  IN_LOG: "#logradouroEndereco",
+  IN_NUM: "#numeroEndereco",
+  IN_BAIRRO: "#bairroEndereco",
+  IN_CIDADE: "#cidadeEndereco",
+  IN_UF: "#ufEndereco",
+  IN_COMPL: "#complementoEndereco",
 
   // form cliente (inputs)
-  IN_CPF: "cpf",
-  IN_NOME: "nome",
-  IN_TEL: "telefone",
-  IN_EMAIL: "email",
-  IN_INDIC: "indicacao",
+  IN_CPF: "#cpf",
+  IN_NOME: "#nome",
+  IN_TEL: "#telefone",
+  IN_EMAIL: "#email",
+  IN_INDIC: "#indicacao",
 
   // botões
   BT_ADD_ADDR: "#adicionarEndereco",
@@ -184,8 +184,13 @@ const api = {
     }),
 
   // via CEP direto (viacep) — se preferir proxy pelo backend, troque aqui
-  getCep: (cep) =>
-    fetchJson(`https://viacep.com.br/ws/${encodeURIComponent(cep)}/json/`),
+  getCep: async (cep) => {
+    const url = `https://viacep.com.br/ws/${encodeURIComponent(cep)}/json/`;
+    const res = await fetch(url, { credentials: "omit", mode: "cors" }); // <- sem cookies
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data;
+  },
 };
 
 /* ================================
@@ -257,7 +262,7 @@ function renderAddressesTable(addresses = []) {
 }
 
 function renderUfOptions() {
-  const select = document.getElementById(SEL.IN_UF);
+  const select = document.querySelector(SEL.IN_UF);
   if (!select) return;
   select.innerHTML = "";
   select.appendChild(el("option", { value: "-" }, ["-"]));
@@ -460,7 +465,7 @@ async function addAddressFromForm() {
   if (!isConfirmed) return;
 
   try {
-    await api.setAddress({
+    const data = {
       p_id_cliente: Number(CURRENT_CLIENT_ID),
       p_endereco: log,
       p_cep: cep,
@@ -470,7 +475,9 @@ async function addAddressFromForm() {
       p_tipo: tipo,
       p_bairro: bairro,
       p_complemento: compl,
-    });
+    };
+    console.log(data);
+    await api.setAddress(data);
 
     // Recarrega a lista — garante que a 1ª coluna tenha o ID para deleção
     await populateAddresses(CURRENT_CLIENT_ID);
@@ -558,14 +565,10 @@ function wireEvents() {
   q(SEL.TBODY_CLIENTS).addEventListener("click", onClientRowClick);
 
   // buscar cliente por CPF
-  EventUtils.addEventToElement(
-    `#${SEL.IN_CPF}`,
-    "change",
-    populateClientFormByCpf
-  );
+  EventUtils.addEventToElement(SEL.IN_CPF, "change", populateClientFormByCpf);
 
   // CEP → auto-preenche
-  EventUtils.addEventToElement(`#${SEL.IN_CEP}`, "blur", lookupCepAndFill);
+  EventUtils.addEventToElement(SEL.IN_CEP, "blur", lookupCepAndFill);
 
   // adicionar endereço
   EventUtils.addEventToElement(SEL.BT_ADD_ADDR, "click", addAddressFromForm);

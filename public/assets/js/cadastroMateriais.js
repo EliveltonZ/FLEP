@@ -14,15 +14,15 @@ const SEL = {
   T_MATERIAIS_TBODY: "#mtable tbody",
 
   // inputs categorias
-  IN_CAT_ID: "cod_categoria",
-  IN_CAT_DESC: "desc_categoria",
+  IN_CAT_ID: "#cod_categoria",
+  IN_CAT_DESC: "#desc_categoria",
 
   // inputs materiais
-  IN_MAT_DESC: "desc_material",
-  IN_MAT_UNID: "unid_material",
-  IN_MAT_PRECO: "preco_material",
-  IN_MAT_CAT: "cat_material",
-  IN_MAT_ID: "cod_material",
+  IN_MAT_DESC: "#desc_material",
+  IN_MAT_UNID: "#unid_material",
+  IN_MAT_PRECO: "#preco_material",
+  IN_MAT_CAT: "#cat_material",
+  IN_MAT_ID: "#cod_material",
 
   // botões
   BT_ADD_MAT: "#bt_new_material",
@@ -145,7 +145,7 @@ function renderCategoriasTable(items) {
 }
 
 function renderCategoriasOptions(items) {
-  const select = document.getElementById(SEL.IN_MAT_CAT);
+  const select = document.querySelector(SEL.IN_MAT_CAT);
   // quando DomUtils.setText/getText usa id sem '#', segue esse padrão
   const elSelect =
     typeof select === "string" ? document.getElementById(select) : select;
@@ -303,7 +303,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // máscara de moeda no input de preço (se houver handler utilitário)
   EventUtils.addEventToElement(
-    `#${SEL.IN_MAT_PRECO}`,
+    SEL.IN_MAT_PRECO,
     "input",
     FormatUtils.handleCurrencyInputEvent
   );

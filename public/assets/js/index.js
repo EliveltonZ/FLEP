@@ -6,8 +6,8 @@ import Swal from "./sweetalert2.esm.all.min.js";
  * Seletores
  * ========================= */
 const SEL = {
-  IN_EMAIL: "txt_email",
-  IN_SENHA: "txt_senha",
+  IN_EMAIL: "#txt_email",
+  IN_SENHA: "#txt_senha",
   BT_LOGIN: "#bt_login",
   FORM: "form",
   REDIRECT_OK: "/orcamentos.html",

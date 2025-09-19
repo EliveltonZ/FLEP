@@ -1,4 +1,4 @@
-// app-orcamentos.js (refatorado)
+// app-orcamentos.js (refatorado e ajustado)
 
 // =========================
 // Imports
@@ -31,6 +31,7 @@ const SEL = {
   T_VALORES: "#table-4",
   T_VALORES_TBODY: "#table-4 tbody",
   OP_TIPO_AMBIENTE: "#txt_tipoambiente",
+  OP_AMBIENTE: "#txt_ambiente",
   OP_TIPO: "#txt_tipo",
   IN_CODIGO: "#txt_codigo",
   IN_DESC: "#txt_descricao",
@@ -41,9 +42,9 @@ const SEL = {
   IN_CUSTO_PRECO: "#txt_preco_c",
   IN_ENTRADA: "#txt_entrada",
 
-  LB_ID: "lb_id",
-  LB_CPF: "lb_cpf",
-  LB_NOME: "lb_nome",
+  LB_ID: "#lb_id",
+  LB_CPF: "#lb_cpf",
+  LB_NOME: "#lb_nome",
 
   TAB_AMBIENTES: 'a[href="#tab-2"]',
   TAB_MATERIAIS: 'a[href="#tab-3"]',
@@ -59,35 +60,35 @@ const SEL = {
 
   RADIO_TIPO: 'input[name="tipo"]',
 
-  // Radios (fix: sempre com '#')
+  // Radios
   R_CARTAO_CRED: "#radio-cartao-credito",
   R_FINANCIAMENTO: "#radio-financiamento",
   R_CARTAO_DEB: "#radio-cartao-debito",
 
   // Labels totais
-  LB_MATERIAL: "lb_material",
-  LB_MATERIAL_P: "lb_material_p",
-  LB_INSTALACAO: "lb_instalacao",
-  LB_INSTALACAO_P: "lb_instalacao_p",
-  LB_RT: "lb_comissaort",
-  LB_RT_P: "lb_comissaort_p",
-  LB_TOTAL: "lb_total",
-  LB_LUCRO: "lb_lucro",
-  LB_LUCRO_P: "lb_lucro_p",
-  LB_IMPOSTOS: "lb_impostos",
-  LB_IMPOSTOS_P: "lb_impostos_p",
-  LB_TOTAL_JUROS: "lb_totaljuros",
-  LB_TOTAL_PROP: "lb_totalproposta",
-  LB_JUROS: "lb_juros",
-  LB_JUROS_P: "lb_juros_p",
-  LB_VALOR_PARC: "lb_valorparcela",
+  LB_MATERIAL: "#lb_material",
+  LB_MATERIAL_P: "#lb_material_p",
+  LB_INSTALACAO: "#lb_instalacao",
+  LB_INSTALACAO_P: "#lb_instalacao_p",
+  LB_RT: "#lb_comissaort",
+  LB_RT_P: "#lb_comissaort_p",
+  LB_TOTAL: "#lb_total",
+  LB_LUCRO: "#lb_lucro",
+  LB_LUCRO_P: "#lb_lucro_p",
+  LB_IMPOSTOS: "#lb_impostos",
+  LB_IMPOSTOS_P: "#lb_impostos_p",
+  LB_TOTAL_JUROS: "#lb_totaljuros",
+  LB_TOTAL_PROP: "#lb_totalproposta",
+  LB_JUROS: "#lb_juros",
+  LB_JUROS_P: "#lb_juros_p",
+  LB_VALOR_PARC: "#lb_valorparcela",
 
-  LB_ULT_ORC: "lb_ultimo_orcamento",
-  LB_PARC_ORC: "lb_parcela_orcada",
-  LB_TAXA_ORC: "lb_taxa_orcada",
-  LB_TIPO: "lb_tipo",
+  LB_ULT_ORC: "#lb_ultimo_orcamento",
+  LB_PARC_ORC: "#lb_parcela_orcada",
+  LB_TAXA_ORC: "#lb_taxa_orcada",
+  LB_TIPO: "#lb_tipo",
 
-  TXT_TAXA: "txt_taxa",
+  TXT_TAXA: "#txt_taxa",
 };
 
 // =========================
@@ -95,44 +96,23 @@ const SEL = {
 // =========================
 const q = (sel, root = document) => root.querySelector(sel);
 const qa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-// substitua seu helper atual por este
 const el = (tag, props = {}, children = []) => {
   const node = document.createElement(tag);
-
-  // tira dataset e style de props para tratar separadamente
   const { dataset, style, className, ...rest } = props || {};
-
-  // aplica as props "normais"
   Object.assign(node, rest);
-
-  // className (se veio)
   if (className) node.className = className;
-
-  // style pode vir string ou objeto
   if (style) {
-    if (typeof style === "string") {
-      node.setAttribute("style", style);
-    } else if (typeof style === "object") {
-      Object.assign(node.style, style);
-    }
+    if (typeof style === "string") node.setAttribute("style", style);
+    else if (typeof style === "object") Object.assign(node.style, style);
   }
-
-  // dataset: aplica chave a chave (não pode trocar o objeto inteiro)
   if (dataset && typeof dataset === "object") {
-    Object.entries(dataset).forEach(([k, v]) => {
-      // dataset usa nomes camelCase -> vira data-kebab-case automaticamente
-      node.dataset[k] = String(v);
-    });
+    Object.entries(dataset).forEach(([k, v]) => (node.dataset[k] = String(v)));
   }
-
-  // filhos
   (children || []).forEach((c) =>
     node.appendChild(typeof c === "string" ? document.createTextNode(c) : c)
   );
-
   return node;
 };
-
 const tdCenter = (text) =>
   el("td", { textContent: text, style: "text-align:center" });
 const tdCurrency = (val) =>
@@ -140,8 +120,15 @@ const tdCurrency = (val) =>
     textContent: FormatUtils.formatCurrencyBR(val),
     style: "text-align:center",
   });
-
 const fragment = () => document.createDocumentFragment();
+// ids seguros para comissões dinâmicas
+const slug = (s = "") =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 // =========================
 /** Estado da aplicação */
@@ -152,9 +139,9 @@ const AppState = {
   idAmbiente: null,
   cache: {
     orcamentos: null,
-    ambientes: new Map(), // idOrcamento -> array
-    materiaisAmbiente: new Map(), // idAmbiente  -> array
-    totais: null, // /totalOcamentos (typo?) -> ver comentário em api
+    ambientes: new Map(),
+    materiaisAmbiente: new Map(),
+    totais: null, // /totalOcamentos (ver comentário no api)
     comissoes: null,
   },
 };
@@ -192,7 +179,6 @@ async function fetchJson(url, options) {
 }
 
 const api = {
-  // id não era usado; mantive assinatura simples
   getOrcamentos: () => fetchJson(`/getOrcamentos`),
 
   setOrcamento: (payload) =>
@@ -265,7 +251,6 @@ const api = {
       body: JSON.stringify(payload),
     }),
 
-  // fix: adiciona "/" e encode
   getUltimoOrcamento: (id_orcamento) =>
     fetchJson(
       `/getUltimoOrcamento?p_id_orcamento=${encodeURIComponent(id_orcamento)}`
@@ -283,11 +268,7 @@ function renderOrcamentosTable(items) {
   for (const it of items) {
     const tr = el(
       "tr",
-      {
-        dataset: { orcamento: it.p_orcamento },
-        // classe para destacar seleção via CSS
-        className: "",
-      },
+      { dataset: { orcamento: it.p_orcamento }, className: "" },
       [
         tdCenter(it.p_orcamento),
         el("td", { textContent: it.p_nome }),
@@ -297,7 +278,6 @@ function renderOrcamentosTable(items) {
       ]
     );
 
-    // botão de valores (mantém compat. com seu código)
     const tdBtn = el("td", { style: "text-align:center" }, [
       el("button", {
         className: "btn bt-color order",
@@ -331,7 +311,7 @@ function renderAmbientesTable(items) {
 }
 
 function renderMateriaisAmbienteTable(items) {
-  const tbody = q("#body-table-materiais");
+  const tbody = q(SEL.T_MATERIAIS_TBODY);
   tbody.innerHTML = "";
   const frag = fragment();
 
@@ -395,7 +375,7 @@ function renderCustosTable(items) {
   for (const it of items) {
     const tr = el("tr", {}, [
       el("td", { textContent: it.p_descricao }),
-      tdCenter(it.p_quatidade),
+      tdCenter(it.p_quantidade), // (fix) antes p_quatidade
       tdCurrency(it.p_preco),
       tdCurrency(it.p_total),
     ]);
@@ -453,18 +433,16 @@ const round2 = (n) => {
 };
 
 function computeTotals({ selecionados, entradaReais, taxaPercent }) {
-  // base de totais
   const totals = {
     material: 0,
     instalacao: 0,
     rt: 0,
     aVista: 0,
-    imposto: 0, // fração (0..1)
-    lucro: 0, // fração (0..1)
+    imposto: 0,
+    lucro: 0,
     percentRt: 0,
   };
 
-  // mapeia comissões -> inicia acumuladores
   const comissoes = AppState.cache.comissoes || [];
   comissoes.forEach((c) => {
     const key = (c.p_descricao || "").toLowerCase();
@@ -472,7 +450,6 @@ function computeTotals({ selecionados, entradaReais, taxaPercent }) {
     else totals[key] = 0;
   });
 
-  // acumula itens selecionados
   for (const item of selecionados) {
     const ambiente = item.p_ambiente;
 
@@ -480,7 +457,6 @@ function computeTotals({ selecionados, entradaReais, taxaPercent }) {
     totals.instalacao += item.p_instalacao;
     totals.rt += item.p_valor_rt;
 
-    // assume p_imp e p_luc são iguais entre itens; se não, pode considerar média ponderada
     totals.imposto = item.p_imp;
     totals.lucro = item.p_luc;
 
@@ -496,7 +472,6 @@ function computeTotals({ selecionados, entradaReais, taxaPercent }) {
   const taxa = (taxaPercent || 0) / 100;
   const entrada = totals.aVista - (entradaReais || 0);
 
-  // Fórmulas originais preservadas
   const comEntrada =
     (entrada * (1 - totals.imposto - totals.lucro)) /
     (1 - totals.imposto - totals.lucro - taxa);
@@ -531,15 +506,10 @@ function comissaoRowTemplate(name, id_label, percent, value) {
 
 function renderComissoes() {
   const div = q(SEL.DIV_CUSTOS);
-  div.innerHTML = "";
   (AppState.cache.comissoes || []).forEach((item) => {
     if ((item.p_descricao || "").toLowerCase() === "comissão/rt") return;
-    div.innerHTML += comissaoRowTemplate(
-      item.p_descricao,
-      item.p_descricao.toLowerCase(),
-      0,
-      0
-    );
+    const id = slug(item.p_descricao);
+    div.innerHTML += comissaoRowTemplate(item.p_descricao, id, 0, 0);
   });
 }
 
@@ -568,12 +538,13 @@ function applyTotalsToUI(calc) {
   // comissões dinâmicas
   (AppState.cache.comissoes || []).forEach((item) => {
     const key = (item.p_descricao || "").toLowerCase();
+    const id = slug(item.p_descricao);
     DomUtils.setInnerHtml(
-      `lb_${key}`,
-      FormatUtils.formatCurrencyBR(totals[key])
+      `#lb_${id}`,
+      FormatUtils.formatCurrencyBR(totals[key] || 0)
     );
     DomUtils.setInnerHtml(
-      `lb_${key}_p`,
+      `#lb_${id}_p`,
       FormatUtils.formatPercentBR(item.p_valor)
     );
   });
@@ -711,8 +682,8 @@ async function onConfirmGerarOrcamento() {
 }
 
 async function onConfirmSetAmbiente() {
-  const categoria = DomUtils.getText("txt_tipoambiente");
-  const descricao = DomUtils.getText("txt_ambiente");
+  const categoria = q(SEL.OP_TIPO_AMBIENTE)?.value || ""; // (fix) value do select
+  const descricao = DomUtils.getText(SEL.OP_AMBIENTE);
 
   if (!categoria || !descricao) {
     Swal.fire({
@@ -757,9 +728,9 @@ function onClickMaterialLinha(e) {
   const row = e.target.closest("tr");
   if (!row?.cells?.length) return;
 
-  DomUtils.setText("txt_codigo", row.cells[0].textContent.trim());
-  DomUtils.setText("txt_descricao", row.cells[1].textContent.trim());
-  DomUtils.setText("txt_preco", row.cells[3].textContent.trim());
+  DomUtils.setText(SEL.IN_CODIGO, row.cells[0].textContent.trim());
+  DomUtils.setText(SEL.IN_DESC, row.cells[1].textContent.trim());
+  DomUtils.setText(SEL.IN_PRECO, row.cells[3].textContent.trim());
 }
 
 async function onConfirmInserirMaterialAmbiente() {
@@ -777,9 +748,11 @@ async function onConfirmInserirMaterialAmbiente() {
     await api.setMateriaisAmbientes({
       p_id_orcamento: AppState.orcamentoAtual,
       p_id_ambiente: AppState.idAmbiente,
-      p_id_material: DomUtils.getText("txt_codigo"),
-      p_quantidade: DomUtils.getText("txt_qtd"),
-      p_preco: FormatUtils.toDecimalStringFromBR(DomUtils.getText("txt_preco")),
+      p_id_material: DomUtils.getText(SEL.IN_CODIGO),
+      p_quantidade: DomUtils.getText(SEL.IN_QTD),
+      p_preco: FormatUtils.toDecimalStringFromBR(
+        DomUtils.getText(SEL.IN_PRECO)
+      ),
     });
     await loadMateriaisAmbiente(AppState.idAmbiente);
     Swal.fire({
@@ -809,9 +782,9 @@ async function onConfirmInserirCusto() {
   try {
     await api.setCusto({
       p_id_orcamento: AppState.orcamentoAtual,
-      p_descricao: DomUtils.getText("txt_descricao_c"),
-      p_quantidade: DomUtils.getText("txt_qtd_c"),
-      p_preco: DomUtils.getText("txt_preco_c"),
+      p_descricao: DomUtils.getText(SEL.IN_CUSTO_DESC),
+      p_quantidade: DomUtils.getText(SEL.IN_CUSTO_QTD),
+      p_preco: DomUtils.getText(SEL.IN_CUSTO_PRECO),
     });
     await loadCustos();
     Swal.fire({
@@ -859,7 +832,7 @@ async function onDelMaterialAmbiente(buttonEvt) {
 }
 
 async function onChangeTipoParcelamento() {
-  const taxa = DomUtils.getText("txt_tipo");
+  const taxa = q(SEL.OP_TIPO)?.value || "0"; // (fix) ler value do select
   DomUtils.setInnerHtml(SEL.TXT_TAXA, FormatUtils.formatPercentBR(taxa));
   await atualizarTotaisUI();
 }
@@ -878,7 +851,8 @@ async function onOrderValuesClick(e) {
   await atualizarTotaisUI();
 
   const lastValues = await api.getUltimoOrcamento(idOrc);
-  if (Array.isArray(lastValues) && lastValues[0]) handleLastOrc(lastValues[0]);
+  if (Array.isArray(lastValues) && lastValues[0])
+    await handleLastOrc(lastValues[0]);
 }
 
 async function handleLastOrc(data) {
@@ -893,7 +867,20 @@ async function handleLastOrc(data) {
   );
   setRadioTax(data.p_tipo_taxa);
   DomUtils.setInnerHtml(SEL.LB_TIPO, typeTax(data.p_tipo_taxa));
-  bindParcelamentoRadios(); // ok chamar aqui se depender do tipo carregado
+
+  // (fix) carregar taxas do tipo e selecionar a taxa orçada anterior
+  await loadTaxasParcelamento(
+    String(data.p_tipo_taxa || "").toUpperCase() || "D"
+  );
+  const sel = q(SEL.OP_TIPO);
+  if (sel) {
+    sel.value = String(data.p_taxa_orcada ?? "");
+    // força atualização dos rótulos/totais
+    await onChangeTipoParcelamento();
+  }
+
+  // rebind se necessário
+  bindParcelamentoRadios();
 }
 
 // =========================
@@ -905,8 +892,8 @@ async function atualizarTotaisUI() {
     .filter((chk) => chk.checked)
     .map((chk) => data[Number(chk.dataset.index)]);
 
-  const entradaReais = toNumber(DomUtils.getText("txt_entrada"));
-  const taxaPercent = toNumber(DomUtils.getText("txt_tipo"));
+  const entradaReais = toNumber(DomUtils.getText(SEL.IN_ENTRADA));
+  const taxaPercent = toNumber(q(SEL.OP_TIPO)?.value || "0"); // (fix)
 
   const calc = computeTotals({ selecionados, entradaReais, taxaPercent });
   applyTotalsToUI(calc);
@@ -916,7 +903,6 @@ async function atualizarTotaisUI() {
 // Radios (parcelamento) + setRadioTax
 // =========================
 function bindParcelamentoRadios() {
-  // delegação segura
   qa(SEL.RADIO_TIPO).forEach((radio) => {
     radio.addEventListener("change", () => loadTaxasParcelamento(radio.value));
     if (radio.checked) loadTaxasParcelamento(radio.value);
@@ -939,11 +925,10 @@ function setRadioTax(value) {
     D: SEL.R_CARTAO_DEB,
   };
   const sel = map[v] || map.D;
-  // desmarca todos (caso setChecked não force comportamento de radio)
   [SEL.R_CARTAO_CRED, SEL.R_FINANCIAMENTO, SEL.R_CARTAO_DEB].forEach((s) =>
     DomUtils.setChecked(s, false)
   );
-  DomUtils.setChecked(sel, true);
+  DomUtils.setChecked(sel, true); // (fix) não remover o '#'
 }
 
 // =========================
@@ -1063,8 +1048,8 @@ async function loadTaxasParcelamento(tipo) {
     data.forEach((item) => {
       select.appendChild(
         el("option", {
-          value: item.p_taxa,
-          textContent: item.p_qtd_parcela,
+          value: item.p_taxa, // value = taxa (percentual)
+          textContent: item.p_qtd_parcela, // texto = nº parcelas
         })
       );
     });
@@ -1097,7 +1082,6 @@ async function loadAmbientesValores(idOrc) {
     AppState.cache.totais = data;
     renderAmbientesValoresTable(data);
 
-    // delegação já cobre, mas se quiser listeners diretos:
     qa(".chk-selecao").forEach((chk) =>
       chk.addEventListener("change", atualizarTotaisUI)
     );
@@ -1128,7 +1112,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadCategoriasAmbientes(),
     loadClientes(),
     loadMateriais(),
-    // bind após radios existirem
   ]);
 
   // efeitos e filtros
@@ -1172,8 +1155,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     "click",
     onConfirmInserirMaterialAmbiente
   );
+  // (fix) listener de delete na tabela correta
   EventUtils.addEventToElement(
-    "#table-2 tbody",
+    SEL.T_MATERIAIS_TBODY,
     "click",
     onDelMaterialAmbiente
   );

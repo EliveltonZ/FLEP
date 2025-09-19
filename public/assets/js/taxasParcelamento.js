@@ -13,9 +13,9 @@ const SEL = {
   TBODY_FINAN: "#ftable tbody",
 
   // inputs
-  IN_TIPO: "txt_tipo", // "C" ou "F"
-  IN_PARC: "txt_parcela",
-  IN_TAXA: "txt_taxa",
+  IN_TIPO: "#txt_tipo", // "C" ou "F"
+  IN_PARC: "#txt_parcela",
+  IN_TAXA: "#txt_taxa",
 
   // botões
   BT_NOVA_TAXA: "#bt_new_taxa",
@@ -57,7 +57,7 @@ function parsePercentInputToNumber(str) {
   return Number.isFinite(n) ? n : NaN;
 }
 // número em % (10.5) -> decimal (0.105)
-const percentNumberToDecimal = (n) => (Number.isFinite(n) ? n / 100 : NaN);
+const percentNumberToDecimal = (n) => (Number.isFinite(n) ? n : NaN);
 // texto exibido "%BR" -> decimal
 function parseDisplayedPercentToDecimal(text) {
   const n = parsePercentInputToNumber(text); // 10.5

@@ -7,19 +7,19 @@ import Swal from "./sweetalert2.esm.all.min.js";
  * ========================= */
 const SEL = {
   // perfil
-  IN_TIPO_PF: "radio-pf",
-  IN_TIPO_PJ: "radio-pj",
-  LBL_NOME: "lb_nome",
-  LBL_DOC: "lb_documento",
-  IN_RAZAO: "txt_razaosocial",
-  IN_DOC: "txt_cnpj_cpf",
-  IN_CEP: "txt_cep",
-  IN_END: "txt_endereco",
-  IN_BAIRRO: "txt_bairro",
-  IN_CIDADE: "txt_cidade",
-  IN_UF: "txt_estado",
-  IN_NUM: "txt_numero",
-  IN_LUCRO: "txt_lucro",
+  IN_TIPO_PF: "#radio-pf",
+  IN_TIPO_PJ: "#radio-pj",
+  LBL_NOME: "#lb_nome",
+  LBL_DOC: "#lb_documento",
+  IN_RAZAO: "#txt_razaosocial",
+  IN_DOC: "#txt_cnpj_cpf",
+  IN_CEP: "#txt_cep",
+  IN_END: "#txt_endereco",
+  IN_BAIRRO: "#txt_bairro",
+  IN_CIDADE: "#txt_cidade",
+  IN_UF: "#txt_estado",
+  IN_NUM: "#txt_numero",
+  IN_LUCRO: "#txt_lucro",
 
   // bancos
   TBODY_BANCOS: "#tbody-bank",
@@ -135,6 +135,7 @@ const api = {
 /* =========================
  * CEP
  * ========================= */
+
 async function onFindCep() {
   try {
     const cep = DomUtils.getText(SEL.IN_CEP).replace("-", "");
@@ -187,7 +188,7 @@ function fillStates() {
     "SE",
     "TO",
   ];
-  const select = q(`#${SEL.IN_UF}`);
+  const select = q(SEL.IN_UF);
   select.innerHTML = `<option value="-">-</option>`;
   estados.forEach((uf) =>
     select.appendChild(el("option", { value: uf }, [uf]))
@@ -445,5 +446,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   EventUtils.addEventToElement(SEL.BT_ATUALIZAR, "click", onSalvarMeusDados);
   EventUtils.addEventToElement(SEL.BT_ADD_BANK, "click", onSalvarBanco);
   EventUtils.addEventToElement(SEL.TBODY_BANCOS, "click", onDeleteBanco);
-  EventUtils.addEventToElement(`#${SEL.IN_CEP}`, "blur", onFindCep);
+  EventUtils.addEventToElement(SEL.IN_CEP, "blur", onFindCep);
 });

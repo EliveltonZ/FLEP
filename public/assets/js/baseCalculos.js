@@ -6,12 +6,12 @@ import Swal from "./sweetalert2.esm.all.min.js";
  * Constantes / Selectors
  * ========================= */
 const SEL = {
-  TXT_IMPOSTO: "txt_imposto",
-  TXT_DESPESA: "txt_despesa",
-  TXT_DIAS: "txt_dias_produtivos",
-  TXT_HORAS: "txt_horas",
-  TXT_EQUIPE: "txt_qt_equipe",
-  LB_VALOR_TOTAL: "lb_valor_total",
+  TXT_IMPOSTO: "#txt_imposto",
+  TXT_DESPESA: "#txt_despesa",
+  TXT_DIAS: "#txt_dias_produtivos",
+  TXT_HORAS: "#txt_horas",
+  TXT_EQUIPE: "#txt_qt_equipe",
+  LB_VALOR_TOTAL: "#lb_valor_total",
 
   RADIO_TIPO: 'input[name="tipo"]',
   R_EQUIPE: "#radio-equipe",
@@ -228,21 +228,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Currency mask/format live
   EventUtils.addEventToElement(
-    `#${SEL.TXT_DESPESA}`,
+    SEL.TXT_DESPESA,
     "input",
     FormatUtils.handleCurrencyInputEvent
   );
 
   // Recalcular ao alterar qualquer input relevante
-  [
-    "#" + SEL.TXT_DESPESA,
-    "#" + SEL.TXT_DIAS,
-    "#" + SEL.TXT_HORAS,
-    "#" + SEL.TXT_EQUIPE,
-  ].forEach((sel) => {
-    EventUtils.addEventToElement(sel, "input", recalcUI);
-    EventUtils.addEventToElement(sel, "change", recalcUI);
-  });
+  [SEL.TXT_DESPESA, SEL.TXT_DIAS, SEL.TXT_HORAS, SEL.TXT_EQUIPE].forEach(
+    (sel) => {
+      EventUtils.addEventToElement(sel, "input", recalcUI);
+      EventUtils.addEventToElement(sel, "change", recalcUI);
+    }
+  );
 
   // Botão salvar
   EventUtils.addEventToElement(SEL.BT_SALVAR, "click", onSalvarDespesas);

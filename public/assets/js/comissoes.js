@@ -7,8 +7,8 @@ import Swal from "./sweetalert2.esm.all.min.js";
  * ========================= */
 const SEL = {
   TBODY: "#table tbody",
-  IN_DESC: "txt_descricao",
-  IN_PERCENT: "txt_porcentagem",
+  IN_DESC: "#txt_descricao",
+  IN_PERCENT: "#txt_porcentagem",
   BT_INSERIR: "#bt_inserir",
 };
 

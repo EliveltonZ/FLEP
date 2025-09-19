@@ -33,47 +33,47 @@ export class DateUtils {
 ============================ */
 export class DomUtils {
   static getText(id) {
-    const el = document.getElementById(id);
+    const el = document.querySelector(id);
     if (!el) return null;
     const v = el.value;
     return v === "" ? null : v;
   }
 
   static setText(id, value) {
-    const el = document.getElementById(id);
+    const el = document.querySelector(id);
     if (el) el.value = value;
   }
 
   static getInnerHtml(id) {
-    const el = document.getElementById(id);
+    const el = document.querySelector(id);
     if (!el) return null;
     const v = el.innerHTML;
     return v === "" ? null : v;
   }
 
   static setInnerHtml(id, value) {
-    const el = document.getElementById(id);
+    const el = document.querySelector(id);
     if (el) el.innerHTML = value;
   }
 
   static getChecked(id) {
-    const el = document.getElementById(id);
+    const el = document.querySelector(id);
     if (!el) return null;
     return el.checked;
   }
 
   static setChecked(id, bool) {
-    const el = document.getElementById(id);
+    const el = document.querySelector(id);
     if (el) el.checked = !!bool;
   }
 
   static setFocus(id) {
-    const el = document.getElementById(id);
+    const el = document.querySelector(id);
     if (el) el.focus();
   }
 
   static getUpperValue(id) {
-    const el = document.getElementById(id);
+    const el = document.querySelector(id);
     return el ? String(el.value).toUpperCase() : null;
   }
 
