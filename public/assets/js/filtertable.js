@@ -14,6 +14,8 @@ export function enableTableFilterSort(tableId) {
     width: "auto",
     maxWidth: "none",
     fontSize: "12px",
+    background: "var(--swal2-dark-theme-black)",
+    zIndex: 9999,
   });
 
   document.body.appendChild(popup);

@@ -24,6 +24,8 @@ const SEL = {
   T_AMBIENTES_TBODY: "#body-table-ambientes",
   T_MATERIAIS: "#table_materiais",
   T_MATERIAIS_TBODY: "#table_materiais tbody",
+  T_MATERIAIS_AMBIENTE: "#table-2",
+  T_MATERIAIS_AMBIENTE_TBODY: "#table-2 tbody",
   T_CLIENTES: "#table-clientes",
   T_CLIENTES_TBODY: "#body-table-clientes",
   T_CUSTOS: "#table-3",
@@ -311,7 +313,7 @@ function renderAmbientesTable(items) {
 }
 
 function renderMateriaisAmbienteTable(items) {
-  const tbody = q(SEL.T_MATERIAIS_TBODY);
+  const tbody = q(SEL.T_MATERIAIS_AMBIENTE_TBODY);
   tbody.innerHTML = "";
   const frag = fragment();
 
@@ -328,7 +330,6 @@ function renderMateriaisAmbienteTable(items) {
     tr.appendChild(td);
     frag.appendChild(tr);
   }
-
   tbody.appendChild(frag);
 }
 
@@ -682,7 +683,7 @@ async function onConfirmGerarOrcamento() {
 }
 
 async function onConfirmSetAmbiente() {
-  const categoria = q(SEL.OP_TIPO_AMBIENTE)?.value || ""; // (fix) value do select
+  const categoria = q(SEL.OP_TIPO_AMBIENTE)?.value || "";
   const descricao = DomUtils.getText(SEL.OP_AMBIENTE);
 
   if (!categoria || !descricao) {
@@ -868,7 +869,6 @@ async function handleLastOrc(data) {
   setRadioTax(data.p_tipo_taxa);
   DomUtils.setInnerHtml(SEL.LB_TIPO, typeTax(data.p_tipo_taxa));
 
-  // (fix) carregar taxas do tipo e selecionar a taxa orçada anterior
   await loadTaxasParcelamento(
     String(data.p_tipo_taxa || "").toUpperCase() || "D"
   );
@@ -1115,12 +1115,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   ]);
 
   // efeitos e filtros
-  EventUtils.tableHover("table");
-  EventUtils.tableHover("table-clientes");
-  EventUtils.tableHover("table-ambientes");
-  EventUtils.tableHover("table_materiais");
-  enableTableFilterSort("table");
-  enableTableFilterSort("table_materiais");
+  EventUtils.tableHover(SEL.T_ORCAMENTOS.slice(1));
+  EventUtils.tableHover(SEL.T_CLIENTES.slice(1));
+  EventUtils.tableHover(SEL.T_AMBIENTES.slice(1));
+  EventUtils.tableHover(SEL.T_MATERIAIS_AMBIENTE.slice(1));
+  EventUtils.tableHover(SEL.T_CUSTOS.slice(1));
+  EventUtils.tableHover(SEL.T_VALORES.slice(1));
+  enableTableFilterSort(SEL.T_ORCAMENTOS.slice(1));
+  enableTableFilterSort(SEL.T_MATERIAIS.slice(1));
   EventUtils.enableEnterAsTab?.();
 
   // Delegação de eventos (mais robusto para linhas dinâmicas)
@@ -1157,7 +1159,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
   // (fix) listener de delete na tabela correta
   EventUtils.addEventToElement(
-    SEL.T_MATERIAIS_TBODY,
+    SEL.T_MATERIAIS_AMBIENTE_TBODY,
     "click",
     onDelMaterialAmbiente
   );

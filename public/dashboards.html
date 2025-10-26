@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html data-bs-theme="auto" lang="pt-br" data-swal2-theme="auto">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Orçamentos</title>
+    <script>!function(){const e=()=>localStorage.getItem("theme"),t=document.documentElement.getAttribute("data-bss-forced-theme"),a=()=>{if(t)return t;const a=e();if(a)return a;const r=document.documentElement.getAttribute("data-bs-theme");return r||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")},r=e=>{"auto"===e&&window.matchMedia("(prefers-color-scheme: dark)").matches?document.documentElement.setAttribute("data-bs-theme","dark"):document.documentElement.setAttribute("data-bs-theme",e)};r(a());const c=(e,t=!1)=>{const a=[].slice.call(document.querySelectorAll(".theme-switcher"));if(a.length){document.querySelectorAll("[data-bs-theme-value]").forEach((e=>{e.classList.remove("active"),e.setAttribute("aria-pressed","false")}));for(const t of a){const a=t.querySelector('[data-bs-theme-value="'+e+'"]');a&&(a.classList.add("active"),a.setAttribute("aria-pressed","true"))}}};window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",(()=>{const t=e();"light"!==t&&"dark"!==t&&r(a())})),window.addEventListener("DOMContentLoaded",(()=>{c(a()),document.querySelectorAll("[data-bs-theme-value]").forEach((e=>{e.addEventListener("click",(t=>{t.preventDefault();const a=e.getAttribute("data-bs-theme-value");(e=>{localStorage.setItem("theme",e)})(a),r(a),c(a)}))}))}))}();</script>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css?h=a549af2a81cd9900ee897d8bc9c4b5e9">
+    <link rel="stylesheet" href="assets/fonts/fontawesome-all.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/fonts/font-awesome.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/fonts/ionicons.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/fonts/fontawesome5-overrides.min.css?h=28d14b47338f273ae463f5202a7b3039">
+    <link rel="stylesheet" href="assets/css/styles.min.css?h=44815063f03f7e241fcb536fc4ff5049">
+    <link rel="stylesheet" href="assets/css/animate.min.min.css?h=5512c3e92e3931978c9ddcc7dbeed22b">
+    <link rel="stylesheet" href="assets/css/css/style.min.css?h=7f93a336bf79c3a51c5228e337d6b85e">
+<script type="module" src="assets/js/orcamentos.js"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="sidebar" data-color="green">
+            <div class="logo"><a class="simple-text logo-normal">FLEP</a></div>
+            <div class="sidebar-wrapper" id="sidebar-wrapper">
+                <ul class="nav">
+                    <li href=""><a data-bss-hover-animate="pulse" href="orcamentos.html">Orçamentos<i class="fa fa-dollar"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="cadastro_materiais.html">Materiais<i class="fa fa-plus-circle"></i></a></li>
+                    <li class="active"><a data-bss-hover-animate="pulse" href="clientes.html">Clientes<i class="icon ion-person-add"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="base_calculos.html">BASE DE CALCULOS<i class="far fa-money-bill-alt"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="tipo_ambiente.html">Tipos de ambientes<i class="far fa-building"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="parcelamento.html">TAXAS DE PARCELAMENTO<i class="far fa-credit-card"></i></a></li>
+                    <li><a data-bss-hover-animate="pulse" href="comissoes.html">COMISSÕES<i class="icon ion-social-usd-outline"></i></a></li>
+                    <li class="active-pro"><a data-bss-hover-animate="pulse" href="meus_dados.html">MEU PERFIL<i class="far fa-user"></i></a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="flex-column main-panel" id="main-panel" style="display: flex;flex-direction: column;height: 100vh;">
+            <nav class="navbar navbar-expand-lg bg-primary navbar-transparent navbar-absolute">
+                <div class="container-fluid"><label class="form-label" id="handle-sidebar" for="toggle"><input class="d-none" type="checkbox" id="toggle"></label>
+                    <div class="navbar-wrapper" style="height: 100%;"><a class="navbar-brand">CLIENTES</a></div>
+                    <div class="collapse navbar-collapse justify-content-end" id="navigation">
+                        <form>
+                            <div class="input-group no-border"></div>
+                        </form>
+                    </div>
+                </div>
+            </nav>
+            <div id="conteiner-head" class="panel-header panel-header-sm"></div>
+            <div class="flex-column content" id="conteiner-body">
+                <div class="row">
+                    <div class="col">
+                        <div class="card">
+                            <div class="card-body d-flex flex-column all-icons" style="font-size: 12px;padding-bottom: 15px;">
+                                <div>
+                                    <ul class="nav nav-tabs nav-justified" role="tablist">
+                                        <li class="nav-item" role="presentation"><a class="nav-link active" role="tab" data-bs-toggle="tab" href="#tab-1">Tab 1</a></li>
+                                        <li class="nav-item" role="presentation"><a class="nav-link" role="tab" data-bs-toggle="tab" href="#tab-2">Tab 2</a></li>
+                                        <li class="nav-item" role="presentation"><a class="nav-link" role="tab" data-bs-toggle="tab" href="#tab-3">Tab 3</a></li>
+                                    </ul>
+                                    <div class="tab-content">
+                                        <div class="tab-pane active" role="tabpanel" id="tab-1">
+                                            <div class="d-flex">
+                                                <div><canvas data-bss-chart="{&quot;type&quot;:&quot;bar&quot;,&quot;data&quot;:{&quot;labels&quot;:[&quot;January&quot;,&quot;February&quot;,&quot;March&quot;,&quot;April&quot;,&quot;May&quot;,&quot;June&quot;],&quot;datasets&quot;:[{&quot;label&quot;:&quot;Revenue&quot;,&quot;backgroundColor&quot;:&quot;#4e73df&quot;,&quot;borderColor&quot;:&quot;#4e73df&quot;,&quot;data&quot;:[&quot;4500&quot;,&quot;5300&quot;,&quot;6250&quot;,&quot;7800&quot;,&quot;9800&quot;,&quot;15000&quot;]},{&quot;label&quot;:&quot;da&quot;,&quot;backgroundColor&quot;:&quot;rgb(172,8,8)&quot;,&quot;borderColor&quot;:&quot;rgb(171,0,0)&quot;,&quot;borderWidth&quot;:&quot;1&quot;,&quot;data&quot;:[&quot;10000&quot;]}]},&quot;options&quot;:{&quot;maintainAspectRatio&quot;:true,&quot;legend&quot;:{&quot;display&quot;:false,&quot;labels&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}},&quot;title&quot;:{&quot;fontStyle&quot;:&quot;bold&quot;},&quot;scales&quot;:{&quot;xAxes&quot;:[{&quot;ticks&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}}],&quot;yAxes&quot;:[{&quot;ticks&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}}]}}}"></canvas></div>
+                                                <div><canvas data-bss-chart="{&quot;type&quot;:&quot;bar&quot;,&quot;data&quot;:{&quot;labels&quot;:[&quot;January&quot;,&quot;February&quot;,&quot;March&quot;,&quot;April&quot;,&quot;May&quot;,&quot;June&quot;],&quot;datasets&quot;:[{&quot;label&quot;:&quot;Revenue&quot;,&quot;backgroundColor&quot;:&quot;#4e73df&quot;,&quot;borderColor&quot;:&quot;#4e73df&quot;,&quot;data&quot;:[&quot;4500&quot;,&quot;5300&quot;,&quot;6250&quot;,&quot;7800&quot;,&quot;9800&quot;,&quot;15000&quot;]},{&quot;label&quot;:&quot;da&quot;,&quot;backgroundColor&quot;:&quot;rgb(172,8,8)&quot;,&quot;borderColor&quot;:&quot;rgb(171,0,0)&quot;,&quot;borderWidth&quot;:&quot;1&quot;,&quot;data&quot;:[&quot;10000&quot;]}]},&quot;options&quot;:{&quot;maintainAspectRatio&quot;:true,&quot;legend&quot;:{&quot;display&quot;:false,&quot;labels&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}},&quot;title&quot;:{&quot;fontStyle&quot;:&quot;bold&quot;},&quot;scales&quot;:{&quot;xAxes&quot;:[{&quot;ticks&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}}],&quot;yAxes&quot;:[{&quot;ticks&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}}]}}}"></canvas></div>
+                                            </div>
+                                            <div class="d-flex">
+                                                <div><canvas data-bss-chart="{&quot;type&quot;:&quot;bar&quot;,&quot;data&quot;:{&quot;labels&quot;:[&quot;January&quot;,&quot;February&quot;,&quot;March&quot;,&quot;April&quot;,&quot;May&quot;,&quot;June&quot;],&quot;datasets&quot;:[{&quot;label&quot;:&quot;Revenue&quot;,&quot;backgroundColor&quot;:&quot;#4e73df&quot;,&quot;borderColor&quot;:&quot;#4e73df&quot;,&quot;data&quot;:[&quot;4500&quot;,&quot;5300&quot;,&quot;6250&quot;,&quot;7800&quot;,&quot;9800&quot;,&quot;15000&quot;]},{&quot;label&quot;:&quot;da&quot;,&quot;backgroundColor&quot;:&quot;rgb(172,8,8)&quot;,&quot;borderColor&quot;:&quot;rgb(171,0,0)&quot;,&quot;borderWidth&quot;:&quot;1&quot;,&quot;data&quot;:[&quot;10000&quot;]}]},&quot;options&quot;:{&quot;maintainAspectRatio&quot;:true,&quot;legend&quot;:{&quot;display&quot;:false,&quot;labels&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}},&quot;title&quot;:{&quot;fontStyle&quot;:&quot;bold&quot;},&quot;scales&quot;:{&quot;xAxes&quot;:[{&quot;ticks&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}}],&quot;yAxes&quot;:[{&quot;ticks&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}}]}}}"></canvas></div>
+                                                <div><canvas data-bss-chart="{&quot;type&quot;:&quot;bar&quot;,&quot;data&quot;:{&quot;labels&quot;:[&quot;January&quot;,&quot;February&quot;,&quot;March&quot;,&quot;April&quot;,&quot;May&quot;,&quot;June&quot;],&quot;datasets&quot;:[{&quot;label&quot;:&quot;Revenue&quot;,&quot;backgroundColor&quot;:&quot;#4e73df&quot;,&quot;borderColor&quot;:&quot;#4e73df&quot;,&quot;data&quot;:[&quot;4500&quot;,&quot;5300&quot;,&quot;6250&quot;,&quot;7800&quot;,&quot;9800&quot;,&quot;15000&quot;]},{&quot;label&quot;:&quot;da&quot;,&quot;backgroundColor&quot;:&quot;rgb(172,8,8)&quot;,&quot;borderColor&quot;:&quot;rgb(171,0,0)&quot;,&quot;borderWidth&quot;:&quot;1&quot;,&quot;data&quot;:[&quot;10000&quot;]}]},&quot;options&quot;:{&quot;maintainAspectRatio&quot;:true,&quot;legend&quot;:{&quot;display&quot;:false,&quot;labels&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}},&quot;title&quot;:{&quot;fontStyle&quot;:&quot;bold&quot;},&quot;scales&quot;:{&quot;xAxes&quot;:[{&quot;ticks&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}}],&quot;yAxes&quot;:[{&quot;ticks&quot;:{&quot;fontStyle&quot;:&quot;normal&quot;}}]}}}"></canvas></div>
+                                            </div>
+                                        </div>
+                                        <div class="tab-pane" role="tabpanel" id="tab-2"></div>
+                                        <div class="tab-pane" role="tabpanel" id="tab-3"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <footer class="footer">
+                <div class="container-fluid">
+                    <nav></nav>
+                    <div class="copyright" id="copyright"><span> © </span><span>, Designed</span></div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    <script src="assets/bootstrap/js/bootstrap.min.js?h=374d178d651fa0eaf680a1fa7b40c788"></script>
+    <script src="assets/js/script.min.js?h=784af5b6b2c035c8b572502042bf8bd8"></script>
+    <script src="assets/js/chart.min.min.js?h=bd9843d1866f45d1406a12f7de05f9ff"></script>
+</body>
+
+</html>

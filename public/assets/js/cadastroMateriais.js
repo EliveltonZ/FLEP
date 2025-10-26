@@ -177,6 +177,7 @@ async function loadMateriais() {
 async function loadCategorias({ updateSelect = true } = {}) {
   try {
     const data = await api.getCategorias();
+    console.log(data);
     renderCategoriasTable(data);
     if (updateSelect) renderCategoriasOptions(data);
   } catch (err) {
