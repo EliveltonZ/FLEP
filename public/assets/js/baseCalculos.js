@@ -125,12 +125,23 @@ async function fillDespesas() {
     DomUtils.setText(SEL.TXT_DIAS, row.p_dias_produtivos ?? 0);
     DomUtils.setText(SEL.TXT_HORAS, row.p_horas_produtivas ?? 0);
     DomUtils.setText(SEL.TXT_EQUIPE, row.p_qt_equipe_funcionario ?? 0);
+    checkRaios(row.p_tipo_calculo);
   } catch (err) {
     Swal.fire({
       icon: "error",
       title: "ERRO",
       text: err.message || "Ocorreu um erro ao buscar dados.",
     });
+  }
+}
+
+function checkRaios(value) {
+  if (value == "H") {
+    DomUtils.setChecked("#radio-hora", true);
+  } else if (value == "E") {
+    DomUtils.setChecked("#radio-equipe", true);
+  } else {
+    DomUtils.setChecked("#radio-dia", true);
   }
 }
 
@@ -171,6 +182,11 @@ function bindRadiosCalculo() {
   });
 }
 
+function getRadio() {
+  const selecionado = document.querySelector('input[name="tipo"]:checked');
+  return selecionado ? selecionado.value : null;
+}
+
 /* =========================
  * Handler: salvar
  * ========================= */
@@ -196,6 +212,7 @@ async function onSalvarDespesas() {
       p_dias_produtivos: DomUtils.getText(SEL.TXT_DIAS),
       p_horas_produtivas: DomUtils.getText(SEL.TXT_HORAS),
       p_qt_equipe_funcionario: DomUtils.getText(SEL.TXT_EQUIPE),
+      p_tipo_calculo: getRadio(),
     };
 
     await api.setDespesas(payload);

@@ -14,4 +14,5 @@ module.exports = {
   setCustos: createRpcHandler("set_custo", "body"),
   delMaterialAmbiente: createRpcHandler("delete_material_ambiente", "body"),
   getUltimoOrcamento: createRpcHandler("get_ultimo_orcamento", "query"),
+  setUltimoOrcamento: createRpcHandler("set_ultimo_orcamento", "body"),
 };

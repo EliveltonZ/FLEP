@@ -9,13 +9,12 @@ export function enableTableFilterSort(tableId) {
   Object.assign(popup.style, {
     display: "none",
     position: "absolute",
-    zIndex: 1000,
+    zIndex: 9999,
     whiteSpace: "nowrap",
     width: "auto",
     maxWidth: "none",
     fontSize: "12px",
     background: "var(--swal2-dark-theme-black)",
-    zIndex: 9999,
   });
 
   document.body.appendChild(popup);

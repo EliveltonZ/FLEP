@@ -44,6 +44,7 @@ route.get("/totalOcamentos", orcamentosController.totalOcamentos);
 route.post("/setCustos", orcamentosController.setCustos);
 route.post("/delMaterialAmbiente", orcamentosController.delMaterialAmbiente);
 route.get("/getUltimoOrcamento", orcamentosController.getUltimoOrcamento);
+route.put("/setUltimoOrcamento", orcamentosController.setUltimoOrcamento);
 
 // rotas cadastroMateriais.js
 route.get(

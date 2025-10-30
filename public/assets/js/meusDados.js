@@ -135,7 +135,6 @@ const api = {
 /* =========================
  * CEP
  * ========================= */
-
 async function onFindCep() {
   try {
     const cep = DomUtils.getText(SEL.IN_CEP).replace("-", "");
@@ -195,23 +194,26 @@ function fillStates() {
   );
 }
 
+// --- NOVO: função global que atualiza os labels conforme o tipo selecionado
+function updateTipoClienteLabels() {
+  const isPJ = DomUtils.getChecked(SEL.IN_TIPO_PJ);
+  DomUtils.setInnerHtml(SEL.LBL_NOME, isPJ ? "Razão Social: *" : "Nome: *");
+  DomUtils.setInnerHtml(SEL.LBL_DOC, isPJ ? "CNPJ: *" : "CPF: *");
+}
+
 function bindTipoClienteRadios() {
   const radios = qa('input[name="tipo"]');
-  const updateLabels = (isPJ) => {
-    DomUtils.setInnerHtml(SEL.LBL_NOME, isPJ ? "Razão Social: *" : "Nome: *");
-    DomUtils.setInnerHtml(SEL.LBL_DOC, isPJ ? "CNPJ: *" : "CPF: *");
-  };
   radios.forEach((radio) =>
-    radio.addEventListener("change", () =>
-      updateLabels(radio.id === "radio-pj")
-    )
+    radio.addEventListener("change", updateTipoClienteLabels)
   );
 }
 
 function setRadio(value) {
-  if (String(value).toUpperCase() === "PF")
-    DomUtils.setChecked(SEL.IN_TIPO_PF, true);
-  else DomUtils.setChecked(SEL.IN_TIPO_PJ, true);
+  const isPF = String(value).toUpperCase() === "PF";
+  DomUtils.setChecked(SEL.IN_TIPO_PF, isPF);
+  DomUtils.setChecked(SEL.IN_TIPO_PJ, !isPF);
+  // garante que os labels reflitam o estado atual imediatamente
+  updateTipoClienteLabels();
 }
 
 function getRadio() {
@@ -442,6 +444,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindTipoClienteRadios();
 
   await Promise.all([loadMeusDados(), loadBancos()]);
+
+  // Garante labels corretos mesmo sem dados prévios
+  updateTipoClienteLabels();
 
   EventUtils.addEventToElement(SEL.BT_ATUALIZAR, "click", onSalvarMeusDados);
   EventUtils.addEventToElement(SEL.BT_ADD_BANK, "click", onSalvarBanco);

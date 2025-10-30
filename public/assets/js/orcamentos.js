@@ -93,6 +93,8 @@ const SEL = {
   TXT_TAXA: "#txt_taxa",
 };
 
+var order = 0;
+
 // =========================
 // Helpers DOM (mínimos, reusáveis)
 // =========================
@@ -257,6 +259,14 @@ const api = {
     fetchJson(
       `/getUltimoOrcamento?p_id_orcamento=${encodeURIComponent(id_orcamento)}`
     ),
+
+  setUltimoOrcamento: (payload) => {
+    return fetchJson(`/setUltimoOrcamento`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  },
 };
 
 // =========================
@@ -625,6 +635,11 @@ async function onRowDblClickOrcamentos(e) {
   }
 }
 
+function handlePaymentTipe() {
+  const radios = document.querySelector('input[name="tipo"]:checked');
+  return radios.value;
+}
+
 async function onRowDblClickAmbientes(e) {
   const row = e.target.closest("tr");
   if (!row?.cells?.length) return;
@@ -721,6 +736,51 @@ async function onConfirmSetAmbiente() {
       icon: "error",
       title: "Erro",
       text: "Não foi possível inserir ambiente.",
+    });
+  }
+}
+
+// Handler
+async function onConfirmLastOrcamento() {
+  const result = await Swal.fire({
+    icon: "question",
+    title: "Salvar",
+    text: "Deseja salvar ultimo Orçamento ?",
+    denyButtonText: "Cancelar",
+    confirmButtonText: "Confirmar",
+    showDenyButton: true,
+  });
+  if (!result.isConfirmed) return;
+
+  try {
+    const select = document.querySelector('select[name="tipo"] option:checked');
+    const data = {
+      p_id_orcamento: Number(localStorage.getItem("idOrc")),
+      p_num_parcelas: Number(select?.innerText ?? 0), // ver nota abaixo
+      p_taxa_orcada: Number(select?.value ?? 0),
+      p_tipo_taxa: handlePaymentTipe(),
+      p_ultimo_valor_orcado: Number(
+        FormatUtils.toDecimalStringFromBR(DomUtils.getInnerHtml(SEL.LB_ULT_ORC))
+      ),
+    };
+
+    await fetch("/setUltimoOrcamento", {
+      method: "PUT",
+      headers: { "Content-type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    Swal.fire({
+      icon: "success",
+      title: "SUCESSO",
+      text: "Orçamento lançado com Sucesso !!!",
+    });
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: "error",
+      title: "ERRO",
+      text: err.message || "Falha ao salvar orçamento.",
     });
   }
 }
@@ -843,6 +903,7 @@ async function onOrderValuesClick(e) {
   const tr = e.target.closest("tr");
   if (!tr) return;
   const idOrc = tr.cells[0].textContent.trim();
+  localStorage.setItem("idOrc", idOrc);
 
   await loadAmbientesValores(idOrc);
 
@@ -1170,8 +1231,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
   EventUtils.addEventToElement(SEL.OP_TIPO, "change", onChangeTipoParcelamento);
   EventUtils.addEventToElement(SEL.IN_ENTRADA, "input", onChangeEntrada);
-  EventUtils.addEventToElement(SEL.BT_LAST_ORC, "click", () =>
-    TableUtils.logNumerosMarcados(SEL.T_VALORES, console.log)
+  EventUtils.addEventToElement(
+    SEL.BT_LAST_ORC,
+    "click",
+    async () => await onConfirmLastOrcamento()
   );
 
   // radios de parcelamento
