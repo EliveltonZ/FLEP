@@ -1,5 +1,4 @@
 // utils.classed.js (ESM)
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 import Swal from "./sweetalert2.esm.all.min.js";
 
 /* ============================
